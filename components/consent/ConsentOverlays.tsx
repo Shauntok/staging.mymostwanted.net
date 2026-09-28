@@ -63,14 +63,14 @@ export function useModalFocus(
       document.removeEventListener("keydown", onKeyDown, true);
       document.removeEventListener("focusin", onFocusIn);
       document.body.style.overflow = previousOverflow;
-      const target = previousFocus?.isConnected && !previousFocus.closest("[inert]")
+      const target = previousFocus && previousFocus !== document.body && previousFocus !== document.documentElement && previousFocus.isConnected && !previousFocus.closest("[inert]")
         ? previousFocus : restoreFocusRef?.current;
       if (target?.isConnected && !target.closest("[inert]")) target.focus();
     };
   }, [active, dialogRef, initialFocusRef, restoreFocusRef]);
 }
 
-export function ConsentOverlays({restoreFocusRef}: {restoreFocusRef: RefObject<HTMLElement | null>}) {
+export function ConsentOverlays({restoreFocusRef, ageRestoreFocusRef}: {restoreFocusRef: RefObject<HTMLElement | null>; ageRestoreFocusRef: RefObject<HTMLElement | null>}) {
   const preferences = usePreferences();
   const t = copy[preferences.locale];
   const [draft, setDraft] = useState(preferences.consent);
@@ -83,7 +83,7 @@ export function ConsentOverlays({restoreFocusRef}: {restoreFocusRef: RefObject<H
   const consentCloseRef = useRef<HTMLButtonElement>(null);
   const ageFocusRef = preferences.ageDenied ? ageTitleRef : adultButtonRef;
 
-  useModalFocus(ageOpen, ageDialogRef, ageFocusRef);
+  useModalFocus(ageOpen, ageDialogRef, ageFocusRef, undefined, ageRestoreFocusRef);
   useModalFocus(consentOpen, consentDialogRef, consentCloseRef, preferences.closeConsent, restoreFocusRef);
   useEffect(() => setDraft(preferences.consent), [preferences.consent, preferences.consentOpen]);
   useEffect(() => {
