@@ -45,7 +45,7 @@
 
 ## Phase 2 — 数据模型、认证、RLS 与附件存储
 
-- [ ] 定义 users/roles、posts/cases、aliases、evidence、tags、locations、reports、notifications、audit logs、revisions、reactions、analytics aggregates、campaigns、backup runs 等模型和状态机。
+- [x] 定义 users/roles、posts/cases、aliases、evidence、tags、locations、reports、notifications、audit logs、revisions、reactions 等核心模型和状态机；Analytics、Campaign、Backup 模型由各自阶段再细化。
 - [ ] 每个迁移包含索引/约束/可回滚策略；将配置从代码硬编码中分离。用最小权限角色进行读写授权。
 - [ ] 建立邮箱密码注册、验证、登录、重置密码；未验证用户能阅读及 Reaction，投稿要求邮箱验证。
 - [ ] 逐表启用 Supabase RLS；验证访客、普通用户、暂停用户、Admin、Owner 各能读写的精确数据范围。Service Role 仅服务端。
@@ -53,6 +53,8 @@
 - [ ] 实现私有证据 Storage、公开/内部隔离、签名 URL；内部证据权限仅 Admin/Owner 可看、Owner 才可切换可见性。记录内部证据访问审计。
 - [ ] 上传图像/音频/PDF/白名单文档：扩展名、MIME、魔数校验、可调大小/数量、防病毒/隔离、路径随机化；V1 视频关闭；至少一张图片才允许提交。
 - [ ] 建立 7 天账号删除冷静期与取消机制；到期解除身份关联，保留已发布内容和必要审计/法律保留。
+
+**本地进度（2026-09-28）：** 已完成并独立审查 [PHASE2_DATA_MODEL.md](docs/architecture/PHASE2_DATA_MODEL.md)，覆盖角色、数据分类与核心生命周期；本地 Supabase CLI 2.118.0 与空迁移骨架已建立。`supabase/config.toml` 显式关闭新表自动暴露、关闭种子导入并启用本地 TOTP。当前机器没有 Docker 命令，因此尚未创建/执行 schema、RLS 或数据库策略测试；未登录或连接任何托管 Supabase 项目。核心 schema/RLS 是下一步，不表示 Phase 2 或 Supabase 已完成。
 
 **验收：** RLS 策略矩阵全部通过；越权访问负向验证无泄漏；私有附件 URL 与对象路径不能匿名访问；角色开关不只靠 UI 隐藏。
 

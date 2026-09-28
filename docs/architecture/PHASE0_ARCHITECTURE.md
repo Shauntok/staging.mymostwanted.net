@@ -12,7 +12,7 @@
 - app/layout.tsx contains site metadata and defaults search indexing to false unless an explicit environment value allows it.
 - components/shell/PreferencesProvider.tsx owns browser language, theme, age-gate and consent preferences; it is not authentication or a server authorization boundary.
 - components/home/HomePage.tsx contains only a labelled illustrative map preview and empty section shells: Latest 6, Hot Ranked 6, Tags 12.
-- No MMWR database schema, data model migrations, or Supabase integration code exist yet. The model listed in HANDOFF.md and MASTER_PLAN.md is a target design, not an implemented schema. Provider variables in .env.example are names/placeholders only; no credentials have been added.
+- Supabase CLI 2.118.0 is pinned as a development dependency. `supabase/config.toml` is a local scaffold; its initial generated migration is empty. No MMWR tables, RLS policies, or Supabase application client integration exist yet. The model in `docs/architecture/PHASE2_DATA_MODEL.md` is a reviewed design contract, not an implemented schema. Provider variables in `.env.example` are names/placeholders only; no credentials have been added.
 - ourlittleage is a separate source repository. This review does not change it or import its application code/data.
 
 ## Trust and data-flow boundaries
@@ -60,7 +60,7 @@ The same names may be used in isolated Development, Staging and Production envir
 | Group | Names present in .env.example | Current use/status |
 |---|---|---|
 | Site and indexing | NEXT_PUBLIC_SITE_URL, ALLOW_SEARCH_INDEXING | Local site metadata; indexing remains disabled by default and should only be enabled after Production review. |
-| Supabase | NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY | Reserved; Supabase client integration not present. Service role must be server-only. |
+| Supabase | NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY | Reserved; Supabase client integration not present. Publishable key is paired with RLS; secret key is server-only and bypasses RLS. |
 | Turnstile | TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY | Reserved; bot protection not integrated. Secret remains server-only. |
 | SMTP | SMTP_HOST, SMTP_USER, SMTP_PASSWORD | Reserved; no mail provider configured. |
 | R2 backups | R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET | Reserved; backup pipeline not implemented. Credentials remain server-only. |
