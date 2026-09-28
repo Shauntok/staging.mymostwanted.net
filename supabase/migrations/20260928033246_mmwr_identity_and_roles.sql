@@ -1,4 +1,9 @@
 -- MMWR identity foundation. This migration intentionally creates no user data.
+-- A later auth/server task must implement trusted signup/profile creation,
+-- security-event writes beyond recovery redemption, role bootstrap/admin
+-- mutation, and account deletion. First Owner provisioning remains a manual
+-- privileged operation; no callable unauthenticated bootstrap RPC is provided.
+-- Deletion must resolve username history under an approved cleanup policy first.
 
 create schema if not exists private;
 
@@ -7,41 +12,28 @@ grant usage on schema private to authenticated;
 
 create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
-  username text,
+  username text not null,
   display_name text,
   account_state text not null default 'active',
   deletion_requested_at timestamptz,
   created_at timestamptz not null default pg_catalog.now(),
   updated_at timestamptz not null default pg_catalog.now(),
-  constraint profiles_username_canonical check (
-    username is null
-    or (
-      username = pg_catalog.lower(pg_catalog.btrim(username))
-      and username ~ '^[a-z0-9_]{3,30}$'
-    )
-  ),
-  constraint profiles_display_name_length check (
-    display_name is null or pg_catalog.char_length(display_name) <= 80
-  ),
+  constraint profiles_username_nonblank check (pg_catalog.btrim(username) <> ''),
   constraint profiles_account_state_valid check (
     account_state in ('active', 'suspended', 'banned', 'deletion_pending')
   )
 );
 
 create unique index profiles_username_normalized_unique
-  on public.profiles (pg_catalog.lower(pg_catalog.btrim(username)))
-  where username is not null;
+  on public.profiles (pg_catalog.lower(pg_catalog.btrim(username)));
 
 create table private.username_history (
   id bigint generated always as identity primary key,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete restrict,
   username text not null,
   changed_at timestamptz not null default pg_catalog.now(),
   changed_by uuid references auth.users (id) on delete set null,
-  constraint username_history_username_canonical check (
-    username = pg_catalog.lower(pg_catalog.btrim(username))
-    and username ~ '^[a-z0-9_]{3,30}$'
-  )
+  constraint username_history_username_nonblank check (pg_catalog.btrim(username) <> '')
 );
 
 create index username_history_user_changed_idx
@@ -89,26 +81,6 @@ create table private.security_events (
 
 create index security_events_occurred_at_idx
   on private.security_events (occurred_at desc);
-
-create function private.create_profile_for_auth_user()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $function$
-begin
-  -- Email and user metadata deliberately remain in Auth and are never copied here.
-  insert into public.profiles (id) values (new.id)
-  on conflict (id) do nothing;
-  return new;
-end;
-$function$;
-
-revoke all on function private.create_profile_for_auth_user() from public, anon, authenticated, service_role;
-
-create trigger mmwr_create_profile_after_auth_user_insert
-  after insert on auth.users
-  for each row execute function private.create_profile_for_auth_user();
 
 create function private.touch_profile_updated_at()
 returns trigger
@@ -161,6 +133,10 @@ declare
   v_consumed boolean := false;
 begin
   if v_user_id is null or p_code_hash is null or pg_catalog.octet_length(p_code_hash) <> 32 then
+    if v_user_id is not null then
+      insert into private.security_events (actor_user_id, event_type, outcome)
+      values (v_user_id, 'recovery_code_redeemed', 'failure');
+    end if;
     return false;
   end if;
 
@@ -170,12 +146,31 @@ begin
     and recovery_code.code_hash = p_code_hash
   returning true into v_consumed;
 
+  insert into private.security_events (actor_user_id, event_type, outcome)
+  values (
+    v_user_id,
+    'recovery_code_redeemed',
+    case when coalesce(v_consumed, false) then 'success' else 'failure' end
+  );
+
   return coalesce(v_consumed, false);
 end;
 $function$;
 
 revoke all on function private.consume_recovery_code(bytea) from public, anon, service_role;
 grant execute on function private.consume_recovery_code(bytea) to authenticated;
+
+create function public.redeem_recovery_code(p_code_hash bytea)
+returns boolean
+language sql
+security invoker
+set search_path = ''
+as $function$
+  select private.consume_recovery_code(p_code_hash);
+$function$;
+
+revoke all on function public.redeem_recovery_code(bytea) from public, anon, service_role;
+grant execute on function public.redeem_recovery_code(bytea) to authenticated;
 
 alter table public.profiles enable row level security;
 alter table private.username_history enable row level security;
