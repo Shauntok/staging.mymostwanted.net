@@ -58,6 +58,13 @@ create table private.recovery_code_hashes (
   constraint recovery_code_hash_user_unique primary key (user_id, code_hash)
 );
 
+create table private.recovery_code_rate_limits (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  window_started_at timestamptz not null default pg_catalog.now(),
+  failure_count integer not null default 0,
+  constraint recovery_code_rate_failures_valid check (failure_count between 0 and 5)
+);
+
 create table private.security_events (
   id bigint generated always as identity primary key,
   actor_user_id uuid references auth.users (id) on delete set null,
@@ -130,13 +137,55 @@ set search_path = ''
 as $function$
 declare
   v_user_id uuid := (select auth.uid());
+  v_now timestamptz := pg_catalog.clock_timestamp();
+  v_window_started_at timestamptz;
+  v_failure_count integer;
   v_consumed boolean := false;
 begin
-  if v_user_id is null or p_code_hash is null or pg_catalog.octet_length(p_code_hash) <> 32 then
-    if v_user_id is not null then
-      insert into private.security_events (actor_user_id, event_type, outcome)
-      values (v_user_id, 'recovery_code_redeemed', 'failure');
-    end if;
+  if v_user_id is null then
+    return false;
+  end if;
+
+  -- Recovery is available at AAL1 but only to a database-assigned staff user.
+  if not exists (
+    select 1
+    from private.user_roles as user_role
+    where user_role.user_id = v_user_id
+      and user_role.role in ('admin', 'owner')
+  ) then
+    return false;
+  end if;
+
+  -- Serialize each user's attempts. The row lock makes direct concurrent RPC
+  -- calls observe the committed failure count before deciding whether to proceed.
+  insert into private.recovery_code_rate_limits (user_id, window_started_at, failure_count)
+  values (v_user_id, v_now, 0)
+  on conflict (user_id) do nothing;
+
+  select rate_limit.window_started_at, rate_limit.failure_count
+  into v_window_started_at, v_failure_count
+  from private.recovery_code_rate_limits as rate_limit
+  where rate_limit.user_id = v_user_id
+  for update;
+
+  if v_window_started_at <= v_now - interval '15 minutes' then
+    update private.recovery_code_rate_limits as rate_limit
+    set window_started_at = v_now, failure_count = 0
+    where rate_limit.user_id = v_user_id;
+    v_failure_count := 0;
+  end if;
+
+  -- Once five failures occur in the 15-minute window, do not write more events.
+  if v_failure_count >= 5 then
+    return false;
+  end if;
+
+  if p_code_hash is null or pg_catalog.octet_length(p_code_hash) <> 32 then
+    update private.recovery_code_rate_limits as rate_limit
+    set failure_count = rate_limit.failure_count + 1
+    where rate_limit.user_id = v_user_id;
+    insert into private.security_events (actor_user_id, event_type, outcome)
+    values (v_user_id, 'recovery_code_redeemed', 'failure');
     return false;
   end if;
 
@@ -146,12 +195,16 @@ begin
     and recovery_code.code_hash = p_code_hash
   returning true into v_consumed;
 
-  insert into private.security_events (actor_user_id, event_type, outcome)
-  values (
-    v_user_id,
-    'recovery_code_redeemed',
-    case when coalesce(v_consumed, false) then 'success' else 'failure' end
-  );
+  if coalesce(v_consumed, false) then
+    insert into private.security_events (actor_user_id, event_type, outcome)
+    values (v_user_id, 'recovery_code_redeemed', 'success');
+  else
+    update private.recovery_code_rate_limits as rate_limit
+    set failure_count = rate_limit.failure_count + 1
+    where rate_limit.user_id = v_user_id;
+    insert into private.security_events (actor_user_id, event_type, outcome)
+    values (v_user_id, 'recovery_code_redeemed', 'failure');
+  end if;
 
   return coalesce(v_consumed, false);
 end;
@@ -176,6 +229,7 @@ alter table public.profiles enable row level security;
 alter table private.username_history enable row level security;
 alter table private.user_roles enable row level security;
 alter table private.recovery_code_hashes enable row level security;
+alter table private.recovery_code_rate_limits enable row level security;
 alter table private.security_events enable row level security;
 
 create policy profiles_select_own
@@ -199,4 +253,5 @@ grant update (display_name) on table public.profiles to authenticated;
 revoke all on table private.username_history from public, anon, authenticated, service_role;
 revoke all on table private.user_roles from public, anon, authenticated, service_role;
 revoke all on table private.recovery_code_hashes from public, anon, authenticated, service_role;
+revoke all on table private.recovery_code_rate_limits from public, anon, authenticated, service_role;
 revoke all on table private.security_events from public, anon, authenticated, service_role;

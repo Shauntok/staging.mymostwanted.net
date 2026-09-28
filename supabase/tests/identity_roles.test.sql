@@ -2,7 +2,7 @@ create extension if not exists pgtap with schema extensions;
 
 begin;
 
-select plan(27);
+select plan(30);
 
 insert into auth.users (
   id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -18,9 +18,14 @@ insert into private.user_roles (user_id, role)
 values ('10000000-0000-4000-8000-000000000001', 'owner');
 
 insert into private.recovery_code_hashes (user_id, code_hash)
-values (
+values
+(
   '10000000-0000-4000-8000-000000000001',
   decode(repeat('ab', 32), 'hex')
+),
+(
+  '10000000-0000-4000-8000-000000000001',
+  decode(repeat('cd', 32), 'hex')
 );
 
 select is((select count(*)::integer from public.profiles), 1, 'Auth insertion alone does not create an active profile');
@@ -53,8 +58,12 @@ select ok(
   and not has_table_privilege('authenticated', 'private.recovery_code_hashes', 'SELECT')
   and not has_table_privilege('authenticated', 'private.recovery_code_hashes', 'INSERT')
   and not has_table_privilege('authenticated', 'private.recovery_code_hashes', 'UPDATE')
-  and not has_table_privilege('authenticated', 'private.recovery_code_hashes', 'DELETE'),
-  'authenticated has no direct DML grants on private role, event, or recovery tables'
+  and not has_table_privilege('authenticated', 'private.recovery_code_hashes', 'DELETE')
+  and not has_table_privilege('authenticated', 'private.recovery_code_rate_limits', 'SELECT')
+  and not has_table_privilege('authenticated', 'private.recovery_code_rate_limits', 'INSERT')
+  and not has_table_privilege('authenticated', 'private.recovery_code_rate_limits', 'UPDATE')
+  and not has_table_privilege('authenticated', 'private.recovery_code_rate_limits', 'DELETE'),
+  'authenticated has no direct DML grants on private role, event, recovery, or rate-limit tables'
 );
 select ok(
   not has_function_privilege('anon', 'private.has_staff_role(text)', 'EXECUTE')
@@ -81,6 +90,8 @@ select ok(
    where c.oid = 'private.user_roles'::regclass)
   and (select c.relrowsecurity from pg_catalog.pg_class as c
    where c.oid = 'private.recovery_code_hashes'::regclass)
+  and (select c.relrowsecurity from pg_catalog.pg_class as c
+   where c.oid = 'private.recovery_code_rate_limits'::regclass)
   and (select c.relrowsecurity from pg_catalog.pg_class as c
    where c.oid = 'private.security_events'::regclass),
   'all private identity tables have RLS enabled'
@@ -128,12 +139,22 @@ select throws_ok(
 );
 select is(public.redeem_recovery_code(decode(repeat('ab', 32), 'hex')), true, 'valid recovery hash is consumed once through the public RPC');
 select is(public.redeem_recovery_code(decode(repeat('ab', 32), 'hex')), false, 'sequential recovery-code replay fails through the public RPC');
+select public.redeem_recovery_code(decode(repeat('ef', 32), 'hex'));
+select public.redeem_recovery_code(decode(repeat('a0', 32), 'hex'));
+select public.redeem_recovery_code(decode(repeat('b0', 32), 'hex'));
+select public.redeem_recovery_code(decode(repeat('c0', 32), 'hex'));
+select is(public.redeem_recovery_code(decode(repeat('cd', 32), 'hex')), false, 'valid code is blocked after five failures in the rate window');
 select is(private.has_staff_role('owner'), false, 'AAL1 does not satisfy staff authorization');
 reset role;
 
 select is(
+  (select failure_count from private.recovery_code_rate_limits
+   where user_id = '10000000-0000-4000-8000-000000000001'),
+  5, 'per-user failed-attempt state is capped atomically at five'
+);
+select is(
   (select count(*)::integer from private.security_events where event_type = 'recovery_code_redeemed'),
-  2, 'recovery success and replay are recorded without exposing the hash'
+  6, 'only the allowed five failures and one success are recorded, without hashes'
 );
 
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2"}', true);
@@ -146,6 +167,7 @@ select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal2"}', true);
 set local role authenticated;
 select is(private.has_staff_role('owner'), false, 'another user cannot inherit the owner role');
+select is(public.redeem_recovery_code(decode(repeat('cd', 32), 'hex')), false, 'non-staff authenticated user cannot redeem a recovery code');
 select is((select count(*)::integer from public.profiles), 1, 'second user sees only their own profile');
 select is(
   (with changed as (
