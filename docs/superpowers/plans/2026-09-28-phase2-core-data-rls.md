@@ -58,15 +58,17 @@
 
 **Files:** The generated initial migration; `supabase/tests/identity_roles.test.sql`.
 
-- [ ] Create the unexposed `private` schema and keep it out of the Data API exposed-schema list.
-- [ ] Create `public.profiles(id, username, display_name, account_state, deletion_requested_at, created_at, updated_at)` with a foreign key to `auth.users`; enforce a normalized unique username and allowed account states.
-- [ ] Create `private.user_roles(user_id, role, granted_at, granted_by)` with role values `admin` or `owner`, unique `(user_id, role)`, and no public read/write grant.
-- [ ] Add profile creation that does not copy email, `user_metadata`, or user-supplied role claims into authorization data.
-- [ ] Allow an authenticated user to select their own profile and update only user-editable display fields; prevent users from changing username ownership, account state, deletion state or role.
-- [ ] Add a private `SECURITY DEFINER` role-check helper only if needed to query the protected role table. Set `search_path = ''`, schema-qualify all references, check `(select auth.uid())`, grant execute only to `authenticated`, and revoke execute from `PUBLIC`, `anon` and `service_role` where unneeded.
-- [ ] Require `auth.jwt()->>'aal' = 'aal2'` in staff-data authorization checks; do not treat a role-table row alone as sufficient for privileged operations.
-- [ ] Keep one-time recovery-code hashes and anomalous login/security events in private server-owned records. Successful recovery-code redemption atomically consumes its matching hash; replay or concurrent redemption must fail.
-- [ ] Test that visitors cannot read or mutate profiles; one user cannot read/update another profile; no client role can insert/update/delete `private.user_roles`; Admin/Owner checks fail at AAL1 and pass only for matching database role at AAL2.
+- [x] Create the unexposed `private` schema and keep it out of the Data API exposed-schema list.
+- [x] Create `public.profiles(id, username, display_name, account_state, deletion_requested_at, created_at, updated_at)` with a foreign key to `auth.users`; enforce a normalized unique username and allowed account states.
+- [x] Create `private.user_roles(user_id, role, granted_at, granted_by)` with role values `admin` or `owner`, unique `(user_id, role)`, and no public read/write grant.
+- [x] Do not create profiles from email, `user_metadata`, or user-supplied role claims. Trusted profile creation is deliberately deferred to the signup/auth task; the migration does not auto-create partial profiles.
+- [x] Allow an authenticated user to select their own profile and update only user-editable display fields; prevent users from changing username ownership, account state, deletion state or role.
+- [x] Add a private `SECURITY DEFINER` role-check helper. Set `search_path = ''`, schema-qualify references, check `(select auth.uid())`, grant execute only to `authenticated`, and revoke execute from `PUBLIC`, `anon` and `service_role`.
+- [x] Require `auth.jwt()->>'aal' = 'aal2'` in staff-data authorization checks; do not treat a role-table row alone as sufficient for privileged operations.
+- [x] Keep one-time recovery-code hashes and security events in private server-owned records. Recovery requires a database-assigned staff role, works at AAL1, atomically consumes a matching hash, and limits failures to five per anchored 15-minute window; replay and concurrent redemption cannot consume the same hash twice.
+- [ ] Execute the prepared 30-assertion pgTAP suite to prove profile isolation, role grants, AAL2 checks, recovery replay/rate-limit behavior and private-table access. Static review passed; database behavior remains unverified because Docker is unavailable.
+
+**Task 3 status (2026-09-28):** The migration and 30 pgTAP assertions are authored. Two independent static reviews approved the identity, role, recovery and database-side attempt-limit boundaries. The SQL and assertions have not run against PostgreSQL; Docker is unavailable. Signup/profile provisioning, first Owner provisioning, role mutation, broader security-event writes and account deletion remain deferred to trusted server/auth workflows. Do not claim Task 3's RLS verification complete until the local database suite runs.
 
 ## Task 4: Create reviewed content and submission boundaries
 

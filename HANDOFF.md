@@ -129,3 +129,4 @@
 - 首页地图目前是明确声明的插画占位，不包含可信行政边界或真实地点数据；帖子、Tags、账号和统计仍为空状态。
 - Phase 0 现状和选择性迁移证据见 MASTER_PLAN.md 完成记录及项目 docs。未复制小时代的用户/生产数据、凭据或应用代码。
 - Supabase、SMTP、Turnstile、Cloudflare/R2、GA4、Search Console、Vercel 和 Production 均未配置或验证。代码完成不代表上线。
+- 当前本地进度：Supabase CLI 2.118.0 与关闭自动暴露/种子数据的本地配置已提交；身份和 Owner/Admin 角色迁移经两轮静态审查，pgTAP 断言已准备但未执行（缺少 Docker）。恢复码仅限 Owner/Admin，失败次数由数据库限流；普通后台授权仍要求 AAL2。注册资料创建、首次 Owner、内容/投稿表和其余 Phase 2 功能尚未完成，托管 Supabase 未连接。详见 `MASTER_PLAN.md` 的 Phase 2 进度记录。
