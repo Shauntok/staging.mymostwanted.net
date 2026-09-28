@@ -33,7 +33,7 @@
 
 - 首次访问显示 18+ Gate；背后网站可隐约显示但全页 Blur/Dark Overlay。明确选择“已满 18 岁”后保存 30 天；选择未满 18 岁只显示“你无法访问本站”，不保存通过状态，每次重新进入都再次要求确认。
 - 必要 Cookie（登录、年龄确认、语言、主题）不可关闭；Analytics 与 Advertising 可选。提供“接受全部 / 仅必要 / 自定义”，Footer 可再次打开设置。GA4/广告追踪须尊重用户选择。
-- 账号为邮箱 + 密码 + 邮箱验证，不接社交登录。未验证用户仍可登录、看完整正文、使用 Reaction，但不能投稿；投稿前必须验证邮箱。
+- 账号为邮箱 + 密码，不接社交登录。为保留未验证用户仍可登录、看完整正文、使用 Reaction 的决定，Supabase Auth 原生邮箱确认必须关闭；MMWR 用自己的单次验证链接管理 `submission_email_verified_at`，每个链接 30 分钟有效、仅可使用一次、每小时最多申请 3 次。投稿数据库入口只检查 MMWR 的验证标记，不能检查 Supabase Auth 的原生确认字段。邮箱通过服务端 SMTP 发送；邮件链接放在 URL fragment，打开链接后须用户主动按确认。SMTP 未配置时不能假报发送成功。
 - 注册必须设置全站唯一用户名，之后允许更改；后台保留旧名、新名与更改时间。系统生成默认头像；V1 不开放更换/上传头像。没有公开个人主页、不搜索用户、帖子不显示投稿者用户名/头像。未来评论若开启，才在评论身份中显示用户名与头像。
 - 申请删除账号即暂停普通使用，进入 7 天冷静期；只能使用“取消删除”入口，期间可取消。到期执行账号删除/解除身份关联。已公开帖子保留但解除前台与投稿账号关联；用户若要求处理已公开内容，走 Telegram 人工渠道。向用户清楚提示。
 
@@ -121,12 +121,16 @@
 
 ## 7. 当前实现状态（2026-09-28）
 
+### Phase 2 Auth 补充进度
+
+邮箱/密码登录注册、Profile 初始化和修复、应用级邮箱验证与重发、Supabase Auth PKCE 密码重置回调、Next.js Supabase Proxy、服务端 SMTP 模块已写入。Auth 邮箱变更会清除 MMWR 投稿邮箱验证状态和未用 token；随机 256-bit 验证值只存 SHA-256 哈希，30 分钟过期，每小时最多发 3 次，打开邮件后仍需用户主动确认。新增迁移 `20260928042227_mmwr_app_email_verification_and_profile_provisioning.sql` 与 21 项 pgTAP 断言。两轮静态复核发现并修复注册密码空格不一致及邮箱变更/验证并发锁顺序问题；尚未运行构建、浏览器或数据库测试，Supabase/SMTP 仍未配置。TOTP 流程、Recovery UI、Storage/上传和其余 Phase 2 未完成。
+
 - 本地已建立独立 Next.js 基础项目，并实现首页基础结构、Latest 6、Hot Ranked 6、12 个 Tag 占位、三语基础界面、Light/Dark、年龄 Gate 与 Cookie Consent。
 - Legal/Privacy/社区规则/请求说明已有三语草稿页面，并有 footer/drawer 入口；文案明确待马来西亚律师审阅，且不会接收真实申请。
-- `/latest`、`/hot`、`/tags`、`/areas`、`/search`、`/submit`、`/account`、`/submissions`、`/vip` 当前仅显示 noindex 的开发中说明页，未实现真实数据或业务工作流。
+- `/latest`、`/hot`、`/tags`、`/areas`、`/search`、`/submit`、`/submissions`、`/vip` 当前仅显示 noindex 的开发中说明页，未实现真实数据或业务工作流。
 - 共享导航抽屉现从左侧覆盖打开，支持键盘焦点管理、Escape 关闭与焦点返回；18+ Gate、Cookie 对话框提供焦点边界和可见焦点样式。此处是代码审查结论，尚未做浏览器运行验证。
 - Phase 1 当前 UI 的三语草稿已覆盖首页、功能状态页和法律页面；还没有真实日期数据或业务表单，日期/数字格式和验证错误文案会随相应功能实施。
 - 首页地图目前是明确声明的插画占位，不包含可信行政边界或真实地点数据；帖子、Tags、账号和统计仍为空状态。
 - Phase 0 现状和选择性迁移证据见 MASTER_PLAN.md 完成记录及项目 docs。未复制小时代的用户/生产数据、凭据或应用代码。
 - Supabase、SMTP、Turnstile、Cloudflare/R2、GA4、Search Console、Vercel 和 Production 均未配置或验证。代码完成不代表上线。
-- 当前本地进度：Supabase CLI 2.118.0 与关闭自动暴露/种子数据的本地配置已提交；身份、角色、内容、投稿和 Reaction 迁移经两轮独立静态审查，身份 30 项和内容 53 项 pgTAP 断言均已编写但未执行（缺少 Docker）。恢复码仅限 Owner/Admin，失败次数由数据库限流；普通后台授权仍要求 AAL2。匿名预览摘要限 200 字符；首次发布时间与恢复上架时间分开。可信注册资料创建、首次 Owner、Storage/签名证据、投稿转正式帖、账号删除和其余 Phase 2 功能尚未完成，托管 Supabase 未连接。详见 `MASTER_PLAN.md` 的 Phase 2 进度记录。
+- 当前本地进度：Supabase CLI 2.118.0 与关闭自动暴露/种子数据的本地配置已提交；身份、角色、内容、投稿和 Reaction 迁移经两轮独立静态审查，身份 30 项和内容 53 项 pgTAP 断言均已编写但未执行（缺少 Docker）。恢复码仅限 Owner/Admin，失败次数由数据库限流；普通后台授权仍要求 AAL2。匿名预览摘要限 200 字符；首次发布时间与恢复上架时间分开。首次 Owner、Storage/签名证据、投稿转正式帖、账号删除和其余 Phase 2 功能尚未完成，托管 Supabase 未连接。详见 `MASTER_PLAN.md` 的 Phase 2 进度记录。

@@ -98,7 +98,21 @@
 
 ## Scope boundary
 
-This plan does not implement login UI, email provider setup, TOTP enrollment/recovery UI, Storage buckets/upload scanning, a remote project, real users/content, or any Staging/Production migration. Those remain later Phase 2 plans and user-guided launch tasks.
+Auth UI and app-owned email confirmation were added after the initial database-only plan; their implementation status is recorded below. This plan still does not configure an email provider, implement TOTP enrollment/recovery UI, create Storage buckets/upload scanning, connect a remote project, add real users/content, or apply any Staging/Production migration.
+
+## Task 6: Implement login and app-owned submission email verification
+
+**Files:** `lib/supabase/server.ts`, `proxy.ts`, `lib/email/verification.ts`, account pages/actions/components, the CLI-generated app-verification migration and `supabase/tests/email_verification.test.sql`.
+
+- [x] Use exact-pinned `@supabase/ssr`, `@supabase/supabase-js`, and Nodemailer; keep all provider credentials server-only.
+- [x] Add password sign-up/sign-in, unique username initialization/recovery, sign-out, password reset through a fixed PKCE callback, and noindex auth routes.
+- [x] Issue cryptographically random 256-bit one-time email-verification values; store only SHA-256 hashes in the private schema; expire in 30 minutes; serialize per-user rate limits to 3/hour; invalidate prior unconsumed token on resend.
+- [x] Put the verification bearer token in a URL fragment and require an explicit user confirmation to avoid verification by automated link scanners. Send with server-only SMTP; fail closed if provider settings are missing.
+- [x] Use an MMWR-owned verification marker for submission eligibility. Supabase Auth native email confirmation is disabled to preserve signed-in reading and Reactions for unverified accounts.
+- [x] Add 21 pgTAP assertions for profile initialization, direct-grant denial, resend rate limit, token expiry/replay boundaries, and reset after Auth email change. Assertions are authored but not run.
+- [ ] Execute PostgreSQL/pgTAP and app build/browser review when a local Docker-compatible runtime is available. Until then no runtime verification is claimed.
+
+**Task 6 status:** Two independent static security passes found signup password trimming differing from sign-in and opposing lock order between email change and verification. Passwords now preserve entered whitespace; both email paths lock token rows before the profile, and the second pass confirmed the reported deadlock path is resolved. No build, browser, SMTP, or database command was run.
 
 ## Self-review
 

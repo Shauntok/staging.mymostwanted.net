@@ -54,7 +54,9 @@
 - [ ] 上传图像/音频/PDF/白名单文档：扩展名、MIME、魔数校验、可调大小/数量、防病毒/隔离、路径随机化；V1 视频关闭；至少一张图片才允许提交。
 - [ ] 建立 7 天账号删除冷静期与取消机制；到期解除身份关联，保留已发布内容和必要审计/法律保留。
 
-**本地进度（2026-09-28）：** 已完成并独立审查 [PHASE2_DATA_MODEL.md](docs/architecture/PHASE2_DATA_MODEL.md)，覆盖角色、数据分类与核心生命周期；本地 Supabase CLI 2.118.0 与安全默认配置已建立。身份、角色、内容、投稿和 Reaction 迁移已经编写并通过两轮独立静态审查；身份 30 项、内容 53 项 pgTAP 断言已编写，但因当前机器没有 Docker 而未执行。恢复码仅限数据库角色为 Owner/Admin 的账号，失败尝试在数据库内按账号限为每 15 分钟 5 次；staff 权限本身仍要求 AAL2。公开预览只保留最多 200 字符的审核摘要，首次发布时间和本次上架时间分开；Reaction 计数考虑了并发下架与 Auth 删除。可信注册资料创建、首次 Owner 配置、角色变更、Storage/签名证据、投稿转正式帖及账号删除流程尚未实现。未登录或连接任何托管 Supabase 项目；本地代码和静态审查不代表数据库策略已执行验证或 Phase 2 完成。
+**本地进度（2026-09-28）：** 已完成并独立审查 [PHASE2_DATA_MODEL.md](docs/architecture/PHASE2_DATA_MODEL.md)，覆盖角色、数据分类与核心生命周期；本地 Supabase CLI 2.118.0 与安全默认配置已建立。身份、角色、内容、投稿和 Reaction 迁移已经编写并通过两轮独立静态审查；身份 30 项、内容 53 项 pgTAP 断言已编写，但因当前机器没有 Docker 而未执行。恢复码仅限数据库角色为 Owner/Admin 的账号，失败尝试在数据库内按账号限为每 15 分钟 5 次；staff 权限本身仍要求 AAL2。公开预览只保留最多 200 字符的审核摘要，首次发布时间和本次上架时间分开；Reaction 计数考虑了并发下架与 Auth 删除。首次 Owner 配置、角色变更、Storage/签名证据、投稿转正式帖及账号删除流程尚未实现。未登录或连接任何托管 Supabase 项目；本地代码和静态审查不代表数据库策略已执行验证或 Phase 2 完成。
+
+**Auth 实施进度（2026-09-28）：** 邮箱/密码登录注册、唯一用户名初始化/修复入口、密码重置 PKCE 回调、Next.js 16 Supabase Proxy、应用自有邮箱确认 UI/SMTP 发送模块和一次性 token/RPC 迁移已写入。新增 `20260928042227_mmwr_app_email_verification_and_profile_provisioning.sql` 与 21 项 pgTAP 断言，两轮静态安全复核发现的注册密码首尾空格不一致及邮箱变更/验证并发锁顺序问题均已修复。保持 Supabase 原生邮箱确认关闭；MMWR 应用使用随机 256-bit token、只存 SHA-256 哈希、30 分钟有效、每小时最多发 3 次且用户须在打开邮件后主动确认；Auth 邮箱改变会清除旧验证标记和未用 token。投稿 RPC 已改为检查 MMWR 验证时间。未运行构建、数据库测试或浏览器验证；需先有 Docker 兼容运行环境才能本地重置数据库并执行 pgTAP。首次 Owner、TOTP 强制用户流程/恢复码界面、Storage/签名文件、投稿转正式帖、账号删除等仍在后续任务。
 
 **验收：** RLS 策略矩阵全部通过；越权访问负向验证无泄漏；私有附件 URL 与对象路径不能匿名访问；角色开关不只靠 UI 隐藏。
 
@@ -128,6 +130,7 @@
 
 - [ ] 建立 GitHub 仓库/保护分支/CI；只将代码与非敏感示例变量提交。不要把密钥、真实证据、个人数据放 Git。
 - [ ] 建立 Development、Staging、Production 三份独立 Supabase/Vercel/Storage/Secrets。Staging 用合成数据、密码/访问控制、robots noindex；不能复制真实敏感证据。
+- [ ] 每个 Supabase Auth 环境关闭原生邮箱确认，并将本站 PKCE `/auth/callback` URL 加入精确 Redirect URL allowlist；MMWR 投稿权限由自有邮箱验证流程控制。不得为了原生确认方便而阻止未验证用户阅读或 Reaction。
 - [ ] 确认迁移版本、回滚策略、备份基线、生产环境变量、域名与 DNS 计划；先部署 Staging 验证。
 - [ ] Codex 在准备好清单、截图/步骤、验证条件后暂停，让用户逐一操作：GitHub → Supabase → Vercel → SMTP → Cloudflare/R2 → GA4 → Search Console/Bing → Domain/DNS → Production 验证。每步等用户反馈完成，再发下一步。
 - [ ] GA4 事件/同意检查，Search Console 与 Bing Webmaster 验证，提交 sitemap；仅在正式域名准备后启用公开索引。

@@ -14,9 +14,9 @@ insert into auth.users (
   ('20000000-0000-4000-8000-000000000004', 'authenticated', 'authenticated', 'other@example.invalid', '', null, '{}'::jsonb, '{}'::jsonb, pg_catalog.now(), pg_catalog.now()),
   ('20000000-0000-4000-8000-000000000005', 'authenticated', 'authenticated', 'suspended@example.invalid', '', pg_catalog.now(), '{}'::jsonb, '{}'::jsonb, pg_catalog.now(), pg_catalog.now());
 
-insert into public.profiles (id, username, display_name, account_state)
+insert into public.profiles (id, username, display_name, account_state, submission_email_verified_at)
 values
-  ('20000000-0000-4000-8000-000000000001', 'submitter one', 'Submitter', 'active'),
+  ('20000000-0000-4000-8000-000000000001', 'submitter one', 'Submitter', 'active', pg_catalog.now()),
   ('20000000-0000-4000-8000-000000000002', 'moderator two', 'Moderator', 'active'),
   ('20000000-0000-4000-8000-000000000003', 'owner three', 'Owner', 'active'),
   ('20000000-0000-4000-8000-000000000004', 'other four', 'Other', 'active'),
