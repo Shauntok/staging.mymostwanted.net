@@ -1,7 +1,7 @@
 # MMWR Phase 2 — Core Data Model and Permission Contract
 
 **Date:** 2026-09-28  
-**Status:** Design contract for local schema work; identity/role schema is authored and statically reviewed but not executed on PostgreSQL. No accounts or real records have been created.
+**Status:** Design contract for local schema work; identity, role, content, submission and reaction schema is authored and statically reviewed but not executed on PostgreSQL. No accounts or real records have been created.
 **Authority:** `HANDOFF.md`, `MASTER_PLAN.md`, and Phase 0 trust-boundary inventory.  
 **Scope:** Identity, approved content, submission/moderation, evidence metadata, aliases/tags/locations, reactions, reports, revisions, audit events, and notifications. This document does not authorize a hosted Supabase project or production data.
 

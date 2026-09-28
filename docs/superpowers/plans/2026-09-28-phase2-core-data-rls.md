@@ -74,14 +74,16 @@
 
 **Files:** New CLI-generated migration; `supabase/tests/content_access.test.sql`.
 
-- [ ] Create a public-safe relation containing only published record id, approved title, public excerpt, published timestamp, tag ids and public area id; no full body, submitter identity, evidence object path, risk flag, internal notes or raw-source fields.
-- [ ] Store full public body separately and allow it only for authenticated readers and AAL2 staff; anonymous preview must remain bounded to the approved excerpt.
-- [ ] Store submissions and unreviewed source text in `private`; the submitter may read their own permitted status and safe reviewer response, while AAL2 Admin/Owner may review. No public API grant to `anon`.
-- [ ] Store attachment metadata/object paths in `private`; no Storage bucket or signed URL is created in this phase.
-- [ ] Add check constraints and foreign keys for content states, and prevent direct user transitions into published/hidden/deleted states.
-- [ ] Add one-public-reaction-per-user-per-post uniqueness and allow only a user's own reaction row. Leave the Reaction icon catalogue for the later feature phase.
-- [ ] Create RLS policies and explicit grants per table. Any view exposed via Data API must use `security_invoker = true`; do not create `SECURITY DEFINER` public views or functions.
-- [ ] Test anonymous preview limits, full-body authorization, submission owner isolation, staff AAL2 restriction, hidden/draft non-disclosure, and reaction ownership/uniqueness.
+- [x] Create a public-safe relation containing only published record id, approved title, bounded public excerpt, first publication and current listing timestamps, safe tag/area labels and thumbnail-availability metadata; no full body, submitter identity, evidence object path, risk flag, internal notes or raw-source fields.
+- [x] Store full public body separately and allow it only for authenticated readers and authorized AAL2 staff; anonymous preview is bounded to a 200-character approved excerpt.
+- [x] Store submissions and unreviewed source text in `private`; the submitter may read their own permitted status and safe reviewer response, while AAL2 Admin/Owner may review according to risk. No anonymous grant.
+- [x] Store attachment metadata/object paths in `private`; no Storage bucket or signed URL is created in this phase.
+- [x] Add check constraints and foreign keys for content states, and prevent direct user transitions into published/hidden/deleted states; publication transitions use role-checked invoker RPCs backed by private definer helpers.
+- [x] Add one-public-reaction-per-user-per-post uniqueness and allow only a user's own reaction operations. Leave the Reaction icon catalogue for the later feature phase.
+- [x] Create RLS policies and explicit grants per table. No public views are created; exposed RPC wrappers use `SECURITY INVOKER`, and private helpers use a pinned empty search path.
+- [ ] Execute the prepared 53-assertion pgTAP suite for anonymous preview limits, full-body authorization, submission owner isolation, staff AAL2 restrictions, hidden/draft non-disclosure, Reaction ownership/uniqueness and counter lifecycle. Static review passed; PostgreSQL behavior remains unverified because Docker is unavailable.
+
+**Task 4 status (2026-09-28):** The content/submission/reaction migration and 53 pgTAP assertions are authored. Two independent static review passes approved commit `a1a2bc4`, including Reaction/Auth/post lock order, cascade recounts, publication/relisting timestamps, bounded public excerpt, AAL2/Owner controls and preview cleanup. No pgTAP or local database execution occurred. Supabase Storage, signed evidence delivery/access audit, public alias-search projection, submission-to-post conversion, and submission-abuse throttling are later tasks; do not claim full Phase 2 or verified RLS completion.
 
 ## Task 5: Verify, type and document the local schema
 
