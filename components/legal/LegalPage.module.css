@@ -1,0 +1,18 @@
+.page{width:min(1160px,100%);margin:0 auto;padding:clamp(40px,6vw,88px) clamp(20px,5.6vw,72px) 110px}
+.header{max-width:860px;padding-bottom:46px}
+.eyebrow{margin:0 0 16px;color:var(--accent);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.header h1{margin:0;font-size:clamp(36px,5vw,62px);line-height:1.13;font-weight:500;letter-spacing:-.045em}
+.intro{margin:22px 0 0;color:var(--muted);font-size:16px;line-height:1.75}
+.draft{display:flex;flex-direction:column;gap:8px;margin:30px 0 0;padding:18px 22px;border:1px solid var(--accent);background:var(--accent-soft);line-height:1.65}
+.draft strong{color:var(--accent);font-size:13px}
+.draft span{font-size:13px}
+.layout{display:grid;grid-template-columns:minmax(190px,250px) minmax(0,1fr);gap:clamp(32px,6vw,84px);border-top:1px solid var(--line);padding-top:34px}
+.navigation{display:flex;flex-direction:column;align-items:flex-start;gap:0;position:sticky;top:20px;align-self:start}
+.navigation a,.navigation button{display:block;width:100%;padding:12px 8px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--muted);text-align:left;font-size:13px;line-height:1.45;cursor:pointer}
+.navigation a[aria-current="page"]{color:var(--accent);font-weight:700}
+.navigation a:hover,.navigation button:hover{color:var(--ink)}
+.navigation a:focus-visible,.navigation button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sections section{padding:4px 0 26px;margin-bottom:30px;border-bottom:1px solid var(--line)}
+.sections h2{margin:0 0 18px;font-size:clamp(21px,2.5vw,28px);font-weight:500;line-height:1.3}
+.sections p{max-width:74ch;margin:0 0 16px;color:var(--muted);font-size:14px;line-height:1.85}
+@media(max-width:700px){.page{padding-bottom:70px}.header{padding-bottom:30px}.layout{grid-template-columns:1fr;gap:32px}.navigation{position:static;display:flex;flex-direction:row;flex-wrap:wrap;gap:7px}.navigation a,.navigation button{width:auto;padding:9px 11px;border:1px solid var(--line);font-size:12px}.navigation a[aria-current="page"]{border-color:var(--accent)}.sections section{margin-bottom:22px}}
