@@ -1,36 +1,24 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MMWR — Malaysia Most Wanted Ranking
 
-## Getting Started
+Independent project in C:\Users\PC\Desktop\mmwr.
 
-First, run the development server:
+## Start locally
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Install Node.js 20.9 or newer and npm.
+- Run npm install, then npm run dev.
+- Open the local address printed by Next.js.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Project documents
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- HANDOFF.md is the approved product brief and requirements.
+- MASTER_PLAN.md is the implementation and release roadmap.
+- USER_MANUAL.md documents intended user and operator workflows.
+- docs/superpowers/plans/2026-09-28-mmwr-foundation.md records the initial build sequence.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment separation
 
-## Learn More
+Keep Development, Staging, and Production projects and credentials separate. .env.example contains only nonsecret local defaults and variable names. Never copy credentials, databases, user submissions, evidence, or production assets from another project. Production setup is a guided user task after the application work is ready.
 
-To learn more about Next.js, take a look at the following resources:
+## Current scope
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The current work establishes the responsive public shell and preference controls. Public posts, real map boundaries, authentication, data storage, analytics, advertising, and provider integrations are not connected yet. Optional analytics and advertising consent default to off. Search indexing remains disabled until launch review.

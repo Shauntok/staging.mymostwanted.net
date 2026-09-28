@@ -123,3 +123,5 @@ The approved product spans several independent systems. Implement them as separa
 ## Execution Choice
 
 The user explicitly asked to begin work and selected inline continuation in this chat. Continue with the foundation tasks in this project without changing `ourlittleage`.
+
+**Progress note (2026-09-28):** The initial public shell, preference provider, trilingual age and cookie dialogs, responsive drawer, homepage section counts, and default noindex metadata are in place. No database, authentication, real geographic data, analytics, advertising or provider credentials have been integrated. This foundation has not been run through build or browser verification.

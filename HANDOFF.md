@@ -118,3 +118,10 @@
 ## 6. 未决事项处理
 
 具体国家/地区边界数据来源与许可、每类附件技术最大值、区域法律文本、真实域名、Telegram 客服目标、SMTP 服务、R2 区域/成本、IP/原始事件保存天数、GA4 consent mode 与指标口径等必须在仓库/服务配置可见后逐项明确。Codex 不猜值；先给安全合理默认并把需要用户动作列入配置清单。影响责任/法律的决定需用户本人和马来西亚律师确认。
+
+## 7. 当前实现状态（2026-09-28）
+
+- 本地已建立独立 Next.js 基础项目，并实现首页基础结构、Latest 6、Hot Ranked 6、12 个 Tag 占位、三语基础界面、Light/Dark、年龄 Gate 与 Cookie Consent。
+- 首页地图目前是明确声明的插画占位，不包含可信行政边界或真实地点数据；帖子、Tags、账号和统计仍为空状态。
+- Phase 0 现状和选择性迁移证据见 MASTER_PLAN.md 完成记录及项目 docs。未复制小时代的用户/生产数据、凭据或应用代码。
+- Supabase、SMTP、Turnstile、Cloudflare/R2、GA4、Search Console、Vercel 和 Production 均未配置或验证。代码完成不代表上线。

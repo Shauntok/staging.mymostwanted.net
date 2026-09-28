@@ -1,0 +1,12 @@
+"use client";
+import {copy} from "@/lib/i18n/catalog";
+import {usePreferences} from "@/components/shell/PreferencesProvider";
+import {useEffect,useState} from "react";
+export function ConsentOverlays(){
+ const p=usePreferences(),t=copy[p.locale],[draft,setDraft]=useState(p.consent);
+ useEffect(()=>setDraft(p.consent),[p.consent,p.consentOpen]);
+ if(!p.hydrated)return null;
+ if(!p.ageApproved)return <div className="overlay age-overlay" role="dialog" aria-modal="true" aria-labelledby="age-title"><section className="consent-card age-card"><div className="mini-brand"><span className="brand-mark">M</span><span>MMWR</span></div><p className="eyebrow">MALAYSIA MOST WANTED RANKING</p><h1 id="age-title">{t.ageTitle}</h1><p className="muted">{p.ageDenied?t.ageDenied:t.ageBody}</p><div className="consent-actions"><button className="button button-primary" onClick={p.approveAge}>{t.adult}</button><button className="button button-quiet" onClick={p.denyAge}>{t.minor}</button></div><p className="fine-print">18+ · {t.guidelines}</p></section></div>;
+ if(!p.consentOpen)return null;
+ return <div className="overlay consent-overlay" role="dialog" aria-modal="true" aria-labelledby="consent-title"><section className="consent-card consent-panel"><button className="dialog-close" onClick={p.closeConsent} aria-label={t.close}>×</button><p className="eyebrow">MMWR · PRIVACY</p><h2 id="consent-title">{t.consentTitle}</h2><p className="muted">{t.consentBody}</p><div className="consent-options"><label><span><strong>{t.necessary}</strong><small>{t.necessaryNote}</small></span><input type="checkbox" checked disabled aria-label={t.necessary}/></label><label><span><strong>{t.analytics}</strong><small>{t.analyticsNote}</small></span><input type="checkbox" checked={draft.analytics} onChange={(e)=>setDraft({...draft,analytics:e.target.checked})}/></label><label><span><strong>{t.advertising}</strong><small>{t.advertisingNote}</small></span><input type="checkbox" checked={draft.advertising} onChange={(e)=>setDraft({...draft,advertising:e.target.checked})}/></label></div><div className="consent-actions"><button className="button button-primary" onClick={()=>p.saveConsent({analytics:true,advertising:true})}>{t.acceptAll}</button><button className="button button-outline" onClick={()=>p.saveConsent({analytics:false,advertising:false})}>{t.necessaryOnly}</button><button className="button button-quiet" onClick={()=>p.saveConsent(draft)}>{t.save}</button></div></section></div>;
+}
