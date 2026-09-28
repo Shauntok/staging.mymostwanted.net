@@ -155,7 +155,7 @@ set local role authenticated;
 select is(public.publish_post('50000000-0000-4000-8000-000000000001', 'fixture approval'), false, 'Admin at AAL1 cannot publish');
 reset role;
 
-select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal2"}', true);
+select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000002","role":"authenticated","aal":"aal2","amr":[{"method":"mfa/totp","timestamp":1000}]}', true);
 set local role authenticated;
 select is(public.publish_post('50000000-0000-4000-8000-000000000001', 'fixture approval'), true, 'AAL2 Admin can publish ordinary content');
 select is(public.publish_post('50000000-0000-4000-8000-000000000002', 'fixture approval'), false, 'Admin cannot publish high-risk content');
@@ -234,13 +234,13 @@ set local role authenticated;
 select is(public.publish_post('50000000-0000-4000-8000-000000000002', 'fixture high risk'), false, 'Owner at AAL1 cannot publish high-risk content');
 reset role;
 
-select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal2"}', true);
+select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal2","amr":[{"method":"mfa/totp","timestamp":1000}]}', true);
 set local role authenticated;
 select is(public.publish_post('50000000-0000-4000-8000-000000000002', 'fixture high risk'), true, 'AAL2 Owner can publish high-risk content');
 reset role;
 select set_config('mmwr.test.first_published_at', (select published_at::text from private.posts where id = '50000000-0000-4000-8000-000000000002'), true);
 select set_config('mmwr.test.last_published_at', (select last_published_at::text from private.posts where id = '50000000-0000-4000-8000-000000000002'), true);
-select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal2"}', true);
+select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal2","amr":[{"method":"mfa/totp","timestamp":1000}]}', true);
 set local role authenticated;
 select is(public.hide_post('50000000-0000-4000-8000-000000000002', 'fixture safety hide'), true, 'AAL2 Owner can hide a post with a reason');
 select is((select pg_catalog.count(*)::integer from public.published_previews where post_id = '50000000-0000-4000-8000-000000000002'), 0, 'hidden post is removed from public preview');
@@ -254,7 +254,7 @@ set local role anon;
 select is((select pg_catalog.count(*)::integer from public.reaction_counts where post_id = '50000000-0000-4000-8000-000000000002'), 0, 'reaction aggregate RLS hides rows without a current public preview');
 reset role;
 delete from public.reaction_counts where post_id = '50000000-0000-4000-8000-000000000002';
-select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal2"}', true);
+select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal2","amr":[{"method":"mfa/totp","timestamp":1000}]}', true);
 set local role authenticated;
 select is(public.restore_post('50000000-0000-4000-8000-000000000002', 'fixture restore'), true, 'AAL2 Owner can restore a hidden post');
 select is((select pg_catalog.count(*)::integer from public.published_previews where post_id = '50000000-0000-4000-8000-000000000002'), 1, 'restored post returns to public preview');
@@ -269,7 +269,7 @@ select ok(
    where post_row.id = '50000000-0000-4000-8000-000000000002'),
   'restore preserves first publication while refreshing the current listing timestamp'
 );
-select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal2"}', true);
+select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000003","role":"authenticated","aal":"aal2","amr":[{"method":"mfa/totp","timestamp":1000}]}', true);
 set local role authenticated;
 select is(public.remove_post('50000000-0000-4000-8000-000000000002', 'fixture removal'), true, 'AAL2 Owner can permanently remove a post');
 select is((select pg_catalog.count(*)::integer from public.published_previews where post_id = '50000000-0000-4000-8000-000000000002'), 0, 'removed post is absent from public preview');

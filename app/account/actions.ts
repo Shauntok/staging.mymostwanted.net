@@ -33,6 +33,7 @@ async function makeAndSendVerification(client: Awaited<ReturnType<typeof createS
 export async function signInAction(_state: AuthActionState = emptyState, formData: FormData): Promise<AuthActionState> {
   const email = value(formData, "email", 254).toLowerCase();
   const password = rawValue(formData, "password", 256);
+  const destination = value(formData, "next", 100) === "/admin" ? "/admin" : "/";
   if (!email || !password) return {key: "invalidCredentials"};
 
   try {
@@ -50,7 +51,7 @@ export async function signInAction(_state: AuthActionState = emptyState, formDat
   } catch {
     return {key: "serviceUnavailable"};
   }
-  redirect("/");
+  redirect(destination);
 }
 
 export async function signUpAction(_state: AuthActionState = emptyState, formData: FormData): Promise<AuthActionState> {

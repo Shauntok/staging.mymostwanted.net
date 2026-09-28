@@ -11,6 +11,6 @@ export async function GET(request: NextRequest) {
     const supabase = await createSupabaseServerClient();
     const {error} = await supabase.auth.exchangeCodeForSession(code);
     if (!error) return NextResponse.redirect(new URL(safePath, request.url));
-  } catch { /* No provider configuration or invalid recovery code. */ }
+  } catch { /* No provider configuration or invalid Auth PKCE code. */ }
   return NextResponse.redirect(new URL("/account?reset=invalid", request.url));
 }

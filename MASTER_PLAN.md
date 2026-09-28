@@ -49,14 +49,14 @@
 - [ ] 每个迁移包含索引/约束/可回滚策略；将配置从代码硬编码中分离。用最小权限角色进行读写授权。
 - [ ] 建立邮箱密码注册、验证、登录、重置密码；未验证用户能阅读及 Reaction，投稿要求邮箱验证。
 - [ ] 逐表启用 Supabase RLS；验证访客、普通用户、暂停用户、Admin、Owner 各能读写的精确数据范围。Service Role 仅服务端。
-- [ ] Owner/Admin TOTP 2FA、恢复码一次性展示与哈希存储、强制启用门、短后台 Session、敏感动作重验证、登录/2FA rate limit 与登录异常记录。
+- [ ] Owner/Admin TOTP 2FA、恢复码一次性展示、强制启用门、短后台 Session、敏感动作重验证、登录/2FA rate limit 与登录异常记录。
 - [ ] 实现私有证据 Storage、公开/内部隔离、签名 URL；内部证据权限仅 Admin/Owner 可看、Owner 才可切换可见性。记录内部证据访问审计。
 - [ ] 上传图像/音频/PDF/白名单文档：扩展名、MIME、魔数校验、可调大小/数量、防病毒/隔离、路径随机化；V1 视频关闭；至少一张图片才允许提交。
 - [ ] 建立 7 天账号删除冷静期与取消机制；到期解除身份关联，保留已发布内容和必要审计/法律保留。
 
-**本地进度（2026-09-28）：** 已完成并独立审查 [PHASE2_DATA_MODEL.md](docs/architecture/PHASE2_DATA_MODEL.md)，覆盖角色、数据分类与核心生命周期；本地 Supabase CLI 2.118.0 与安全默认配置已建立。身份、角色、内容、投稿和 Reaction 迁移已经编写并通过两轮独立静态审查；身份 30 项、内容 53 项 pgTAP 断言已编写，但因当前机器没有 Docker 而未执行。恢复码仅限数据库角色为 Owner/Admin 的账号，失败尝试在数据库内按账号限为每 15 分钟 5 次；staff 权限本身仍要求 AAL2。公开预览只保留最多 200 字符的审核摘要，首次发布时间和本次上架时间分开；Reaction 计数考虑了并发下架与 Auth 删除。首次 Owner 配置、角色变更、Storage/签名证据、投稿转正式帖及账号删除流程尚未实现。未登录或连接任何托管 Supabase 项目；本地代码和静态审查不代表数据库策略已执行验证或 Phase 2 完成。
+**本地进度（2026-09-28）：** 已完成并独立审查 [PHASE2_DATA_MODEL.md](docs/architecture/PHASE2_DATA_MODEL.md)，覆盖角色、数据分类与核心生命周期；本地 Supabase CLI 2.118.0 与安全默认配置已建立。身份、角色、内容、投稿和 Reaction 迁移已经编写并通过两轮独立静态审查；身份 22 项、内容 53 项、Auth 21 项和 Staff MFA 9 项 pgTAP 断言已编写，但因当前机器没有 Docker 而未执行。Staff gate 已实现 TOTP enrollment/challenge、原生一次性恢复码 UI 和恢复后的 TOTP 替换流程；迁移已移除不能提升 Auth AAL 的旧自建恢复码存储。Supabase Auth 原生恢复码目前是实验 API，本地配置启用十个 16 字符码、五次失败锁定 15 分钟；需在 Staging 验证所用托管 Auth 版本支持此能力。后台数据授权要求 AAL2 和 `mfa/totp` 签名因子证明；恢复码 AAL2 只能进入换认证器流程。公开预览只保留最多 200 字符的审核摘要，首次发布时间和本次上架时间分开；Reaction 计数考虑了并发下架与 Auth 删除。首次 Owner 配置、角色变更、Storage/签名证据、投稿转正式帖及账号删除流程尚未实现。未登录或连接任何托管 Supabase 项目；本地代码和静态审查不代表数据库策略已执行验证或 Phase 2 完成。
 
-**Auth 实施进度（2026-09-28）：** 邮箱/密码登录注册、唯一用户名初始化/修复入口、密码重置 PKCE 回调、Next.js 16 Supabase Proxy、应用自有邮箱确认 UI/SMTP 发送模块和一次性 token/RPC 迁移已写入。新增 `20260928042227_mmwr_app_email_verification_and_profile_provisioning.sql` 与 21 项 pgTAP 断言，两轮静态安全复核发现的注册密码首尾空格不一致及邮箱变更/验证并发锁顺序问题均已修复。保持 Supabase 原生邮箱确认关闭；MMWR 应用使用随机 256-bit token、只存 SHA-256 哈希、30 分钟有效、每小时最多发 3 次且用户须在打开邮件后主动确认；Auth 邮箱改变会清除旧验证标记和未用 token。投稿 RPC 已改为检查 MMWR 验证时间。未运行构建、数据库测试或浏览器验证；需先有 Docker 兼容运行环境才能本地重置数据库并执行 pgTAP。首次 Owner、TOTP 强制用户流程/恢复码界面、Storage/签名文件、投稿转正式帖、账号删除等仍在后续任务。
+**Auth 实施进度（2026-09-28）：** 邮箱/密码登录注册、唯一用户名初始化/修复入口、密码重置 PKCE 回调、Next.js 16 Supabase Proxy、应用自有邮箱确认 UI/SMTP 发送模块和一次性 token/RPC 迁移已写入。新增 `20260928042227_mmwr_app_email_verification_and_profile_provisioning.sql` 与 21 项 pgTAP 断言，两轮静态安全复核发现的注册密码首尾空格不一致及邮箱变更/验证并发锁顺序问题均已修复。保持 Supabase 原生邮箱确认关闭；MMWR 应用使用随机 256-bit token、只存 SHA-256 哈希、30 分钟有效、每小时最多发 3 次且用户须在打开邮件后主动确认；Auth 邮箱改变会清除旧验证标记和未用 token。投稿 RPC 已改为检查 MMWR 验证时间。Owner/Admin 的 TOTP enrollment/challenge gate、原生一次性恢复码生成/验证 UI 和恢复后的 TOTP 替换流程已经写入；恢复码使用 Supabase Auth 实验 API，local Auth 已设十码、16 字符、五次失败/15 分钟锁定，托管 Staging 兼容性未验证。尚未运行构建、浏览器或数据库测试；需先有 Docker 兼容运行环境才能本地重置数据库并执行 pgTAP。首次 Owner、Storage/签名文件、投稿转正式帖、账号删除等仍在后续任务。
 
 **验收：** RLS 策略矩阵全部通过；越权访问负向验证无泄漏；私有附件 URL 与对象路径不能匿名访问；角色开关不只靠 UI 隐藏。
 

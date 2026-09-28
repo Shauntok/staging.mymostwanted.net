@@ -64,11 +64,11 @@
 - [x] Do not create profiles from email, `user_metadata`, or user-supplied role claims. Trusted profile creation is deliberately deferred to the signup/auth task; the migration does not auto-create partial profiles.
 - [x] Allow an authenticated user to select their own profile and update only user-editable display fields; prevent users from changing username ownership, account state, deletion state or role.
 - [x] Add a private `SECURITY DEFINER` role-check helper. Set `search_path = ''`, schema-qualify references, check `(select auth.uid())`, grant execute only to `authenticated`, and revoke execute from `PUBLIC`, `anon` and `service_role`.
-- [x] Require `auth.jwt()->>'aal' = 'aal2'` in staff-data authorization checks; do not treat a role-table row alone as sufficient for privileged operations.
-- [x] Keep one-time recovery-code hashes and security events in private server-owned records. Recovery requires a database-assigned staff role, works at AAL1, atomically consumes a matching hash, and limits failures to five per anchored 15-minute window; replay and concurrent redemption cannot consume the same hash twice.
-- [ ] Execute the prepared 30-assertion pgTAP suite to prove profile isolation, role grants, AAL2 checks, recovery replay/rate-limit behavior and private-table access. Static review passed; database behavior remains unverified because Docker is unavailable.
+- [x] Require `auth.jwt()->>'aal' = 'aal2'` and a TOTP `amr` entry (`totp` or `mfa/totp`) in staff-data authorization checks; recovery-code AAL2 alone is restricted to TOTP replacement.
+- [x] Keep Owner/Admin authorization separate from role discovery: staff identity may route the caller to MFA at AAL1, but all staff data authorization still requires AAL2. Supabase Auth owns recovery-code plaintext-once handling, single-use redemption, AAL2 elevation and lockout; remove the earlier incomplete duplicate database hash/redeem path.
+- [ ] Execute the prepared 22-assertion pgTAP suite to prove profile isolation, role grants, AAL2 checks and private-table access. Static review passed; database behavior remains unverified because Docker is unavailable.
 
-**Task 3 status (2026-09-28):** The migration and 30 pgTAP assertions are authored. Two independent static reviews approved the identity, role, recovery and database-side attempt-limit boundaries. The SQL and assertions have not run against PostgreSQL; Docker is unavailable. Signup/profile provisioning, first Owner provisioning, role mutation, broader security-event writes and account deletion remain deferred to trusted server/auth workflows. Do not claim Task 3's RLS verification complete until the local database suite runs.
+**Task 3 status (2026-09-28):** The identity/role migration, recovery-code cleanup migration and 22 pgTAP assertions are authored. Staff database authorization checks only AAL2. The earlier private hash/redeem path was removed because it could not elevate an Auth session; native Supabase Auth recovery codes now provide the one-time AAL2 recovery path. The SQL and assertions have not run against PostgreSQL; Docker is unavailable. Signup/profile provisioning, first Owner provisioning, role mutation, broader security-event writes and account deletion remain deferred to trusted server/auth workflows. Do not claim Task 3's RLS verification complete until the local database suite runs.
 
 ## Task 4: Create reviewed content and submission boundaries
 
@@ -98,7 +98,7 @@
 
 ## Scope boundary
 
-Auth UI and app-owned email confirmation were added after the initial database-only plan; their implementation status is recorded below. This plan still does not configure an email provider, implement TOTP enrollment/recovery UI, create Storage buckets/upload scanning, connect a remote project, add real users/content, or apply any Staging/Production migration.
+Auth UI and app-owned email confirmation were added after the initial database-only plan; TOTP and recovery-code UI are now also authored as described below. This plan still does not configure an email provider, create Storage buckets/upload scanning, connect a remote project, add real users/content, or apply any Staging/Production migration.
 
 ## Task 6: Implement login and app-owned submission email verification
 
@@ -114,8 +114,23 @@ Auth UI and app-owned email confirmation were added after the initial database-o
 
 **Task 6 status:** Two independent static security passes found signup password trimming differing from sign-in and opposing lock order between email change and verification. Passwords now preserve entered whitespace; both email paths lock token rows before the profile, and the second pass confirmed the reported deadlock path is resolved. No build, browser, SMTP, or database command was run.
 
+## Task 7: Enforce Owner/Admin TOTP and Auth-native recovery
+
+**Files:** `app/admin/page.tsx`, `components/auth/StaffMfaGate.tsx`, Supabase SSR/browser clients, CLI-generated staff/recovery migrations, `supabase/config.toml`, and `supabase/tests/staff_mfa.test.sql`.
+
+- [x] Add a staff identity discovery function for the AAL1 routing decision; keep all staff data checks in `private.has_staff_role()` at AAL2.
+- [x] Add localized TOTP enrollment and challenge UI. Show the setup QR/manual secret only during enrollment.
+- [x] Use Supabase Auth's experimental recovery-code API; generate ten one-time codes only after verified TOTP, verify recovery codes into AAL2, require new TOTP after recovery, revoke the old verified TOTP factor and rotate the recovery set.
+- [x] Enable native recovery-code enroll/verify locally with ten 16-character codes and five failed attempts per 15-minute lockout. Hosted project compatibility remains a Staging gate.
+- [x] Replace the incomplete custom hash/redeem tables and RPCs with native Auth-owned recovery state.
+- [x] Add nine pgTAP assertions for staff identity discovery, recovery-code AAL2 denial and strict TOTP AAL2 role authorization boundaries; authored but not run.
+- [x] Statically review route and database authorization, recovery handling, factor replacement, and fail-closed paths; do not use recovery-code AAL2 as staff data authorization.
+- [ ] Run database, type/build and browser MFA flows when an approved Docker-compatible environment is available. Staging must exercise TOTP setup/sign-in, valid/invalid/replayed recovery, lockout, factor replacement, recovery-code rotation and fail-closed behavior before Production.
+
+**Task 7 status (2026-09-28):** The implementation and tests are authored and statically reviewed. Supabase JS marks recovery-code methods experimental; local Auth configuration enables the server-side recovery-code factor, and the client opts into the API. No database, browser, SMTP, build or Staging verification has run; do not mark the launch gate verified.
+
 ## Self-review
 
 - The model covers the Phase 2 identity, content, alias/tag/location, evidence metadata, reports, revisions, reactions, notifications and audit foundations; analytics/campaign/backup schemas remain owned by their later phases because their data definitions are not yet ready.
-- Authorization separates grants from RLS, public previews from private full text, user roles from user-editable Auth metadata, and role membership from AAL2 assurance.
+- Authorization separates grants from RLS, public previews from private full text, user roles from user-editable Auth metadata, and role membership from TOTP-proven AAL2 assurance.
 - Local Docker is absent in the current environment. SQL may be prepared locally, but verification is not complete until a local Supabase runtime is available; remote credentials are not a substitute in this plan.

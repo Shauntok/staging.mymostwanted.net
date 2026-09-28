@@ -28,7 +28,7 @@ const text = {
   }
 } as const;
 
-export function AuthForms({mode, signedIn = false, passwordUpdated = false, verified = false}: {mode: AuthMode; signedIn?: boolean; passwordUpdated?: boolean; verified?: boolean}) {
+export function AuthForms({mode, signedIn = false, passwordUpdated = false, verified = false, redirectTo = "/"}: {mode: AuthMode; signedIn?: boolean; passwordUpdated?: boolean; verified?: boolean; redirectTo?: string}) {
   const {locale} = usePreferences();
   const words = text[locale];
   const [signInState, signInForm, signingIn] = useActionState(signInAction, initial);
@@ -56,6 +56,7 @@ export function AuthForms({mode, signedIn = false, passwordUpdated = false, veri
     {mode === "resend" && <p className="auth-intro">{words.resendHelp}</p>}
     {passwordUpdated && <p className="auth-message" role="status">{words.passwordUpdated}</p>}
     {mode === "signin" && !signedIn && <form action={signInForm} className="auth-form">
+      <input type="hidden" name="next" value={redirectTo}/>
       <label>{words.email}<input name="email" type="email" autoComplete="email" required maxLength={254}/></label>
       <label>{words.password}<input name="password" type="password" autoComplete="current-password" required maxLength={256}/></label>
       <button className="button button-primary" disabled={signingIn}>{signingIn ? words.pending : words.signin}</button>

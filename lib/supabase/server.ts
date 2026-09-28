@@ -10,6 +10,7 @@ export async function createSupabaseServerClient() {
 
   const cookieStore = await cookies();
   return createServerClient(url, publishableKey, {
+    auth: {experimental: {recoveryCodes: true}},
     cookies: {
       getAll() { return cookieStore.getAll(); },
       setAll(cookiesToSet) {

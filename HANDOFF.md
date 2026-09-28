@@ -123,7 +123,7 @@
 
 ### Phase 2 Auth 补充进度
 
-邮箱/密码登录注册、Profile 初始化和修复、应用级邮箱验证与重发、Supabase Auth PKCE 密码重置回调、Next.js Supabase Proxy、服务端 SMTP 模块已写入。Auth 邮箱变更会清除 MMWR 投稿邮箱验证状态和未用 token；随机 256-bit 验证值只存 SHA-256 哈希，30 分钟过期，每小时最多发 3 次，打开邮件后仍需用户主动确认。新增迁移 `20260928042227_mmwr_app_email_verification_and_profile_provisioning.sql` 与 21 项 pgTAP 断言。两轮静态复核发现并修复注册密码空格不一致及邮箱变更/验证并发锁顺序问题；尚未运行构建、浏览器或数据库测试，Supabase/SMTP 仍未配置。TOTP 流程、Recovery UI、Storage/上传和其余 Phase 2 未完成。
+邮箱/密码登录注册、Profile 初始化和修复、应用级邮箱验证与重发、Supabase Auth PKCE 密码重置回调、Next.js Supabase Proxy、服务端 SMTP 模块已写入。Auth 邮箱变更会清除 MMWR 投稿邮箱验证状态和未用 token；随机 256-bit 验证值只存 SHA-256 哈希，30 分钟过期，每小时最多发 3 次，打开邮件后仍需用户主动确认。新增迁移 `20260928042227_mmwr_app_email_verification_and_profile_provisioning.sql` 与 21 项 pgTAP 断言。两轮静态复核发现并修复注册密码空格不一致及邮箱变更/验证并发锁顺序问题。Owner/Admin TOTP gate 与原生一次性恢复码已写入，恢复码功能依赖 Supabase Auth 实验 API，并启用恢复后的 TOTP 替换流程。尚未运行构建、浏览器或数据库测试，Supabase/SMTP 仍未配置；Storage/上传和其余 Phase 2 未完成。
 
 - 本地已建立独立 Next.js 基础项目，并实现首页基础结构、Latest 6、Hot Ranked 6、12 个 Tag 占位、三语基础界面、Light/Dark、年龄 Gate 与 Cookie Consent。
 - Legal/Privacy/社区规则/请求说明已有三语草稿页面，并有 footer/drawer 入口；文案明确待马来西亚律师审阅，且不会接收真实申请。
@@ -133,4 +133,4 @@
 - 首页地图目前是明确声明的插画占位，不包含可信行政边界或真实地点数据；帖子、Tags、账号和统计仍为空状态。
 - Phase 0 现状和选择性迁移证据见 MASTER_PLAN.md 完成记录及项目 docs。未复制小时代的用户/生产数据、凭据或应用代码。
 - Supabase、SMTP、Turnstile、Cloudflare/R2、GA4、Search Console、Vercel 和 Production 均未配置或验证。代码完成不代表上线。
-- 当前本地进度：Supabase CLI 2.118.0 与关闭自动暴露/种子数据的本地配置已提交；身份、角色、内容、投稿和 Reaction 迁移经两轮独立静态审查，身份 30 项和内容 53 项 pgTAP 断言均已编写但未执行（缺少 Docker）。恢复码仅限 Owner/Admin，失败次数由数据库限流；普通后台授权仍要求 AAL2。匿名预览摘要限 200 字符；首次发布时间与恢复上架时间分开。首次 Owner、Storage/签名证据、投稿转正式帖、账号删除和其余 Phase 2 功能尚未完成，托管 Supabase 未连接。详见 `MASTER_PLAN.md` 的 Phase 2 进度记录。
+- 当前本地进度：Supabase CLI 2.118.0 与关闭自动暴露/种子数据的本地配置已提交；身份 22 项、内容 53 项、Auth 21 项、Staff MFA 9 项 pgTAP 断言均已编写但未执行（缺少 Docker）。后台 gate 使用 TOTP 和 Supabase Auth 原生一次性恢复码；实验恢复码 Auth 接口须在 Staging 验证。数据库后台授权要求 AAL2 和 `mfa/totp` 签名因子证明，恢复码 AAL2 仅进入认证器替换流程。匿名预览摘要限 200 字符；首次发布时间与恢复上架时间分开。首次 Owner、Storage/签名证据、投稿转正式帖、账号删除和其余 Phase 2 功能尚未完成，托管 Supabase 未连接。详见 `MASTER_PLAN.md` 的 Phase 2 进度记录。
