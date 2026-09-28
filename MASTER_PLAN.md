@@ -10,7 +10,7 @@
 
 ## 全局约束
 
-- MMWR 正式英文品牌名固定；三语仅翻译 UI。Light/Dark 同一设计系统。
+- MMWR 正式英文品牌名固定；三语仅翻译 UI。Light/Dark 同一设计系统；视觉配色遵循用户确认的参考图（浅冰蓝/白/青蓝/海军蓝），Dark 使用同一品牌色的深海军蓝与亮青适配方案。
 - 所有广告位、自动翻译、视频、草稿、VIP/评论、广告商 Portal 默认关闭或不属于 V1。
 - RLS、Owner/Admin 2FA、内部证据隔离、审计、安全 Headers、年龄门、Consent 与备份为必备能力。
 - SEO 与 Security 均为 Launch Gate。不得把待审/内部资料交给爬虫。
