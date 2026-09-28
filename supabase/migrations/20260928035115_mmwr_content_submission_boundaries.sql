@@ -34,21 +34,27 @@ create table private.posts (
   full_body text not null,
   risk_level text not null default 'ordinary',
   status text not null default 'draft',
+  -- published_at is the first publication time; last_published_at tracks current listing/relisting.
   published_at timestamptz,
+  last_published_at timestamptz,
   created_at timestamptz not null default pg_catalog.now(),
   updated_at timestamptz not null default pg_catalog.now(),
   constraint posts_title_nonblank check (pg_catalog.btrim(approved_title) <> ''),
   constraint posts_primary_name_nonblank check (pg_catalog.btrim(primary_name) <> ''),
   constraint posts_excerpt_nonblank check (pg_catalog.btrim(public_excerpt) <> ''),
-  constraint posts_excerpt_preview_size check (pg_catalog.char_length(public_excerpt) <= 1200),
+  constraint posts_excerpt_preview_size check (pg_catalog.char_length(public_excerpt) <= 200),
   constraint posts_body_nonblank check (pg_catalog.btrim(full_body) <> ''),
   constraint posts_risk_valid check (risk_level in ('ordinary', 'high')),
   constraint posts_status_valid check (status in ('draft', 'pending_review', 'approved', 'published', 'temporarily_hidden', 'permanently_removed')),
   constraint posts_published_timestamp_consistent check (
-    (status in ('published', 'temporarily_hidden', 'permanently_removed') and published_at is not null)
-    or (status not in ('published', 'temporarily_hidden', 'permanently_removed') and published_at is null)
-  )
+    (status in ('published', 'temporarily_hidden', 'permanently_removed') and published_at is not null and last_published_at is not null)
+    or (status not in ('published', 'temporarily_hidden', 'permanently_removed') and published_at is null and last_published_at is null)
+  ),
+  constraint posts_publication_timestamps_ordered check (last_published_at is null or last_published_at >= published_at)
 );
+
+comment on column private.posts.public_excerpt is
+  'Approved login-wall preview payload, capped at 200 characters; frontend must also line-clamp it.';
 
 create table private.post_tags (
   post_id uuid not null references private.posts (id) on delete cascade,
@@ -177,6 +183,17 @@ security definer
 set search_path = ''
 as $function$
 begin
+  perform post_row.id
+  from private.posts as post_row
+  where post_row.id = p_post_id
+  for update;
+
+  if not found then
+    delete from public.published_previews as preview where preview.post_id = p_post_id;
+    delete from public.reaction_counts as reaction_count where reaction_count.post_id = p_post_id;
+    return;
+  end if;
+
   if not exists (
     select 1
     from private.posts as post_row
@@ -197,7 +214,7 @@ begin
     post_row.approved_title,
     post_row.primary_name,
     post_row.public_excerpt,
-    post_row.published_at,
+    post_row.last_published_at,
     array(
       select post_tag.tag_id
       from private.post_tags as post_tag
@@ -245,7 +262,10 @@ begin
 
   delete from public.reaction_counts as reaction_count
   where reaction_count.post_id = p_post_id
-    and not exists (select 1 from public.published_previews as preview where preview.post_id = p_post_id);
+    and (
+      not exists (select 1 from public.published_previews as preview where preview.post_id = p_post_id)
+      or not exists (select 1 from private.reactions as reaction where reaction.post_id = p_post_id)
+    );
 end;
 $function$;
 
@@ -271,7 +291,7 @@ $function$;
 revoke all on function private.sync_post_publication_state() from public, anon, authenticated, service_role;
 
 create trigger posts_sync_publication_projection
-  after update of status, approved_title, primary_name, public_excerpt, area_id on private.posts
+  after update of status, approved_title, primary_name, public_excerpt, area_id, last_published_at on private.posts
   for each row
   execute function private.sync_post_publication_state();
 
@@ -365,6 +385,60 @@ create trigger evidence_refresh_public_projection
   after insert or update or delete on private.evidence_metadata
   for each row execute function private.refresh_public_projection_for_evidence_change();
 
+-- Every reaction mutation, including Auth-driven cascade deletion, serializes on
+-- the owning post and recomputes the exact public aggregate from source rows.
+create function private.recount_public_reactions()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_post_id uuid;
+  v_status text;
+  v_area_active boolean;
+  v_count bigint;
+begin
+  if tg_op = 'DELETE' then
+    v_post_id := old.post_id;
+  else
+    v_post_id := new.post_id;
+  end if;
+
+  select post_row.status, area.is_active
+    into v_status, v_area_active
+  from private.posts as post_row
+  left join private.areas as area on area.id = post_row.area_id
+  where post_row.id = v_post_id
+  for update of post_row;
+
+  if not found or v_status <> 'published' or v_area_active is distinct from true
+    or not exists (select 1 from public.published_previews as preview where preview.post_id = v_post_id) then
+    delete from public.reaction_counts as reaction_count where reaction_count.post_id = v_post_id;
+  else
+    select pg_catalog.count(*) into v_count
+    from private.reactions as reaction where reaction.post_id = v_post_id;
+
+    if v_count > 0 then
+      insert into public.reaction_counts (post_id, reaction_count)
+      values (v_post_id, v_count)
+      on conflict (post_id) do update set reaction_count = excluded.reaction_count;
+    else
+      delete from public.reaction_counts as reaction_count where reaction_count.post_id = v_post_id;
+    end if;
+  end if;
+
+  if tg_op = 'DELETE' then return old; end if;
+  return new;
+end;
+$function$;
+
+revoke all on function private.recount_public_reactions() from public, anon, authenticated, service_role;
+
+create trigger reactions_recount_public_count
+  after insert or delete on private.reactions
+  for each row execute function private.recount_public_reactions();
+
 create function private.create_submission(p_title text, p_original_source text)
 returns uuid
 language plpgsql
@@ -421,7 +495,11 @@ declare
   v_user_id uuid := (select auth.uid());
   v_status text;
 begin
-  if v_user_id is null or p_information is null or pg_catalog.btrim(p_information) = '' then
+  if v_user_id is null or p_information is null or pg_catalog.btrim(p_information) = ''
+    or not exists (
+      select 1 from public.profiles as profile
+      where profile.id = v_user_id and profile.account_state = 'active'
+    ) then
     return false;
   end if;
 
@@ -679,11 +757,25 @@ as $function$
 declare
   v_user_id uuid := (select auth.uid());
   v_account_state text;
-  v_inserted integer;
+  v_post_status text;
+  v_area_active boolean;
 begin
-  if v_user_id is null or not exists (
-    select 1 from public.published_previews as preview where preview.post_id = p_post_id
-  ) then
+  if v_user_id is null then
+    return false;
+  end if;
+
+  -- Match the owner moderation lock so hide/restore cannot race reaction writes.
+  select post_row.status, area.is_active
+    into v_post_status, v_area_active
+  from private.posts as post_row
+  left join private.areas as area on area.id = post_row.area_id
+  where post_row.id = p_post_id
+  for update of post_row;
+
+  if not found or v_post_status <> 'published' or v_area_active is distinct from true
+    or not exists (
+      select 1 from public.published_previews as preview where preview.post_id = p_post_id
+    ) then
     return false;
   end if;
 
@@ -696,14 +788,6 @@ begin
   insert into private.reactions (user_id, post_id)
   values (v_user_id, p_post_id)
   on conflict (user_id, post_id) do nothing;
-  get diagnostics v_inserted = row_count;
-
-  if v_inserted = 1 then
-    insert into public.reaction_counts (post_id, reaction_count)
-    values (p_post_id, 1)
-    on conflict (post_id) do update
-    set reaction_count = public.reaction_counts.reaction_count + 1;
-  end if;
 
   return true;
 end;
@@ -752,11 +836,6 @@ begin
     return false;
   end if;
 
-  update public.reaction_counts as reaction_count
-  set reaction_count = reaction_count.reaction_count - 1
-  where reaction_count.post_id = p_post_id;
-  delete from public.reaction_counts as reaction_count
-  where reaction_count.post_id = p_post_id and reaction_count.reaction_count <= 0;
   return true;
 end;
 $function$;
@@ -837,10 +916,12 @@ begin
   end if;
 
   update private.posts as post_row
-  set status = 'published', published_at = pg_catalog.now(), updated_at = pg_catalog.now()
+  set status = 'published',
+      published_at = coalesce(post_row.published_at, pg_catalog.statement_timestamp()),
+      last_published_at = pg_catalog.statement_timestamp(),
+      updated_at = pg_catalog.now()
   where post_row.id = p_post_id;
 
-  perform private.sync_public_post_projection(p_post_id);
   insert into private.moderation_events (
     actor_user_id, post_id, action, reason, prior_state, next_state, risk_level
   ) values (
@@ -908,16 +989,9 @@ begin
 
   update private.posts as post_row
   set status = v_next_state,
-      published_at = case when p_action = 'restore' then coalesce(post_row.published_at, pg_catalog.now()) else post_row.published_at end,
+      last_published_at = case when p_action = 'restore' then pg_catalog.statement_timestamp() else post_row.last_published_at end,
       updated_at = pg_catalog.now()
   where post_row.id = p_post_id;
-
-  if p_action = 'restore' then
-    perform private.sync_public_post_projection(p_post_id);
-  else
-    delete from public.published_previews as preview where preview.post_id = p_post_id;
-    delete from public.reaction_counts as reaction_count where reaction_count.post_id = p_post_id;
-  end if;
 
   insert into private.moderation_events (
     actor_user_id, post_id, action, reason, prior_state, next_state, risk_level
@@ -967,7 +1041,11 @@ alter table private.moderation_events enable row level security;
 create policy published_previews_public_read
   on public.published_previews for select to anon, authenticated using (true);
 create policy reaction_counts_public_read
-  on public.reaction_counts for select to anon, authenticated using (true);
+  on public.reaction_counts for select to anon, authenticated
+  using (exists (
+    select 1 from public.published_previews as preview
+    where preview.post_id = reaction_counts.post_id
+  ));
 
 create policy areas_staff_read
   on private.areas for select to authenticated
