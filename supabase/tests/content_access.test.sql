@@ -2,7 +2,7 @@ create extension if not exists pgtap with schema extensions;
 
 begin;
 
-select plan(50);
+select plan(53);
 
 insert into auth.users (
   id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -97,7 +97,11 @@ select ok(
   has_column_privilege('anon', 'public.published_previews', 'approved_title', 'SELECT')
   and has_column_privilege('anon', 'public.published_previews', 'public_tag_labels', 'SELECT')
   and not has_table_privilege('anon', 'public.published_previews', 'INSERT')
-  and not has_table_privilege('authenticated', 'public.published_previews', 'UPDATE'),
+  and not has_table_privilege('authenticated', 'public.published_previews', 'UPDATE')
+  and has_column_privilege('anon', 'public.published_previews', 'first_published_at', 'SELECT')
+  and has_column_privilege('anon', 'public.published_previews', 'last_listed_at', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.reaction_counts', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.reaction_counts', 'INSERT'),
   'anonymous readers receive only the explicit safe-preview read grant'
 );
 select ok(
@@ -124,9 +128,19 @@ select ok(
   'reaction aggregate policy requires a matching public preview'
 );
 select ok(
-  pg_catalog.pg_get_functiondef('private.set_own_reaction(uuid)'::regprocedure) ilike '%for update%'
-  and pg_catalog.pg_get_functiondef('private.set_own_reaction(uuid)'::regprocedure) ilike '%area.is_active%',
-  'reaction writes lock the post and recheck active area eligibility'
+  (with function_definitions as (
+     select pg_catalog.pg_get_functiondef('private.set_own_reaction(uuid)'::regprocedure) as set_definition,
+            pg_catalog.pg_get_functiondef('private.remove_own_reaction(uuid)'::regprocedure) as remove_definition
+   )
+   select set_definition ilike '%area.is_active%'
+     and pg_catalog.strpos(set_definition, 'auth.users') < pg_catalog.strpos(set_definition, 'for key share')
+     and pg_catalog.strpos(set_definition, 'for key share') < pg_catalog.strpos(set_definition, 'private.posts')
+     and pg_catalog.strpos(set_definition, 'private.posts') < pg_catalog.strpos(set_definition, 'for update')
+     and pg_catalog.strpos(remove_definition, 'auth.users') < pg_catalog.strpos(remove_definition, 'for key share')
+     and pg_catalog.strpos(remove_definition, 'for key share') < pg_catalog.strpos(remove_definition, 'private.posts')
+     and pg_catalog.strpos(remove_definition, 'private.posts') < pg_catalog.strpos(remove_definition, 'for update')
+   from function_definitions),
+  'all authenticated reaction RPCs lock Auth before post and reaction rows'
 );
 
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000004', true);
@@ -162,6 +176,15 @@ select is(public.set_own_reaction('50000000-0000-4000-8000-000000000001'), true,
 select is(public.set_own_reaction('50000000-0000-4000-8000-000000000001'), true, 'repeated reaction set is idempotent');
 select is((select reaction_count from public.reaction_counts where post_id = '50000000-0000-4000-8000-000000000001'), 1::bigint, 'reaction counter records one reaction per user and post');
 select is((select pg_catalog.count(*)::integer from public.my_reaction_post_ids()), 1, 'reaction RPC returns only the caller own post ids');
+select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}', true);
+reset role;
+set local role authenticated;
+select is(public.remove_own_reaction('50000000-0000-4000-8000-000000000001'), false, 'a user cannot remove another user reaction');
+reset role;
+select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000004', true);
+select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000004","role":"authenticated","aal":"aal1"}', true);
+set local role authenticated;
 select is(public.remove_own_reaction('50000000-0000-4000-8000-000000000001'), true, 'user can remove their own reaction');
 select is((select pg_catalog.count(*)::integer from public.reaction_counts where post_id = '50000000-0000-4000-8000-000000000001'), 0, 'reaction counter is removed when the final user removes their reaction');
 reset role;
@@ -197,6 +220,12 @@ select is(public.set_own_reaction('50000000-0000-4000-8000-000000000001'), true,
 reset role;
 
 delete from auth.users where id = '20000000-0000-4000-8000-000000000004';
+select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000004', true);
+select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000004","role":"authenticated","aal":"aal1"}', true);
+set local role authenticated;
+select is(public.set_own_reaction('50000000-0000-4000-8000-000000000001'), false, 'reaction set fails when the Auth identity row is missing');
+select is(public.remove_own_reaction('50000000-0000-4000-8000-000000000001'), false, 'reaction removal fails when the Auth identity row is missing');
+reset role;
 select is((select pg_catalog.count(*)::integer from public.reaction_counts where post_id = '50000000-0000-4000-8000-000000000001'), 0, 'Auth cascade deletion recounts and removes the final public reaction count');
 
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000003', true);
@@ -233,7 +262,8 @@ reset role;
 select ok(
   (select post_row.published_at = pg_catalog.current_setting('mmwr.test.first_published_at')::timestamptz
       and post_row.last_published_at > pg_catalog.current_setting('mmwr.test.last_published_at')::timestamptz
-      and preview.published_at = post_row.last_published_at
+      and preview.first_published_at = post_row.published_at
+      and preview.last_listed_at = post_row.last_published_at
    from private.posts as post_row
    join public.published_previews as preview on preview.post_id = post_row.id
    where post_row.id = '50000000-0000-4000-8000-000000000002'),

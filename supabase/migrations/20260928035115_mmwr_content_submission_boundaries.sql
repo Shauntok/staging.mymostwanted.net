@@ -162,7 +162,8 @@ create table public.published_previews (
   approved_title text not null,
   primary_name text not null,
   public_excerpt text not null,
-  published_at timestamptz not null,
+  first_published_at timestamptz not null,
+  last_listed_at timestamptz not null,
   public_tag_ids uuid[] not null default array[]::uuid[],
   public_tag_labels text[] not null default array[]::text[],
   public_area_id uuid not null,
@@ -206,7 +207,7 @@ begin
   end if;
 
   insert into public.published_previews (
-    post_id, approved_title, primary_name, public_excerpt, published_at,
+    post_id, approved_title, primary_name, public_excerpt, first_published_at, last_listed_at,
     public_tag_ids, public_tag_labels, public_area_id, public_area_name, thumbnail_available
   )
   select
@@ -214,6 +215,7 @@ begin
     post_row.approved_title,
     post_row.primary_name,
     post_row.public_excerpt,
+    post_row.published_at,
     post_row.last_published_at,
     array(
       select post_tag.tag_id
@@ -244,7 +246,8 @@ begin
     approved_title = excluded.approved_title,
     primary_name = excluded.primary_name,
     public_excerpt = excluded.public_excerpt,
-    published_at = excluded.published_at,
+    first_published_at = excluded.first_published_at,
+    last_listed_at = excluded.last_listed_at,
     public_tag_ids = excluded.public_tag_ids,
     public_tag_labels = excluded.public_tag_labels,
     public_area_id = excluded.public_area_id,
@@ -757,10 +760,20 @@ as $function$
 declare
   v_user_id uuid := (select auth.uid());
   v_account_state text;
+  v_locked_user_id uuid;
   v_post_status text;
   v_area_active boolean;
 begin
   if v_user_id is null then
+    return false;
+  end if;
+
+  -- All user-driven reaction paths lock Auth first, then post, then reaction rows.
+  select auth_user.id into v_locked_user_id
+  from auth.users as auth_user
+  where auth_user.id = v_user_id
+  for key share;
+  if not found then
     return false;
   end if;
 
@@ -818,8 +831,25 @@ declare
   v_user_id uuid := (select auth.uid());
   v_account_state text;
   v_removed integer;
+  v_locked_user_id uuid;
 begin
   if v_user_id is null then
+    return false;
+  end if;
+
+  select auth_user.id into v_locked_user_id
+  from auth.users as auth_user
+  where auth_user.id = v_user_id
+  for key share;
+  if not found then
+    return false;
+  end if;
+
+  perform post_row.id
+  from private.posts as post_row
+  where post_row.id = p_post_id
+  for update;
+  if not found then
     return false;
   end if;
 
@@ -1094,7 +1124,7 @@ create policy moderation_events_staff_read
 grant usage on schema public to anon, authenticated;
 revoke all on table public.published_previews from public, anon, authenticated, service_role;
 revoke all on table public.reaction_counts from public, anon, authenticated, service_role;
-grant select (post_id, approved_title, primary_name, public_excerpt, published_at, public_tag_ids, public_tag_labels, public_area_id, public_area_name, thumbnail_available)
+grant select (post_id, approved_title, primary_name, public_excerpt, first_published_at, last_listed_at, public_tag_ids, public_tag_labels, public_area_id, public_area_name, thumbnail_available)
   on table public.published_previews to anon, authenticated;
 grant select (post_id, reaction_count) on table public.reaction_counts to anon, authenticated;
 
