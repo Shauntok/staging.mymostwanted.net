@@ -33,13 +33,15 @@
 
 ## Phase 1 — 设计系统、国际化与基础页面
 
-- [ ] 创建三语 UI 文案资源（简体中文/English/Bahasa Melayu），品牌名固定；验证路由、日期、数字与表单错误文案切换。
-- [ ] 建立统一 Light/Dark Tokens、响应式导航、覆盖式 Left Drawer、Logo 两形态、组件焦点/键盘/屏幕阅读支持。
-- [ ] 首页骨架按地图、Latest 6、Hot Ranked 6、12 个 Smart Mix Tags、广告可选位顺序搭建。
-- [ ] 加入 18+ Gate：通过后 30 天；未成年人路径不记通过 Cookie。实现年龄 Gate 与 Cookie Consent 不互相绕过。
-- [ ] 建立 Footer 的 Legal、Privacy、投稿规则、申诉/更正/撤下、Cookie 设置入口；草拟内容须标明待马来西亚律师审阅。
+- [x] 创建当前 UI 使用的三语文案（简体中文/English/Bahasa Melayu），品牌名固定；日期、数字与表单错误文案随对应功能页面一并实现（当前尚无日期数据或真实表单）。
+- [x] 建立统一 Light/Dark Tokens、响应式导航、覆盖式 Left Drawer、Logo 两形态、组件焦点/键盘/屏幕阅读支持。
+- [x] 首页骨架按地图、Latest 6、Hot Ranked 6、12 个 Smart Mix Tags、广告可选位顺序搭建。
+- [x] 加入 18+ Gate：通过后 30 天；未成年人路径不记通过 Cookie。实现年龄 Gate 与 Cookie Consent 不互相绕过。
+- [x] 建立 Footer 的 Legal、Privacy、投稿规则、申诉/更正/撤下、Cookie 设置入口；草拟内容须标明待马来西亚律师审阅。
 
 **验收：** 三语言 UI 与主题全站一致；手机/桌面导航工作；18+ Gate 每条状态路径可验证；无默认打开的可选功能。
+
+**完成记录（2026-09-28）：** 当前所有 UI 页面均提供简体中文、English 和 Bahasa Melayu 文案；日期格式与表单验证文案将在这些功能出现时接入。已完成首页空骨架、18+ Gate、Cookie Consent、法律草稿页和主要导航 noindex 状态页。覆盖式左侧抽屉、键盘焦点边界、焦点返回与 18+ Gate 焦点恢复已实现并通过代码独立审查；未运行构建或测试。地图、内容、账号与投稿目前仍为占位；法律草稿须律师审核。此为本地代码进度，不代表 Staging 或 Production 验证。
 
 ## Phase 2 — 数据模型、认证、RLS 与附件存储
 

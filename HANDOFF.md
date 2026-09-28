@@ -122,6 +122,10 @@
 ## 7. 当前实现状态（2026-09-28）
 
 - 本地已建立独立 Next.js 基础项目，并实现首页基础结构、Latest 6、Hot Ranked 6、12 个 Tag 占位、三语基础界面、Light/Dark、年龄 Gate 与 Cookie Consent。
+- Legal/Privacy/社区规则/请求说明已有三语草稿页面，并有 footer/drawer 入口；文案明确待马来西亚律师审阅，且不会接收真实申请。
+- `/latest`、`/hot`、`/tags`、`/areas`、`/search`、`/submit`、`/account`、`/submissions`、`/vip` 当前仅显示 noindex 的开发中说明页，未实现真实数据或业务工作流。
+- 共享导航抽屉现从左侧覆盖打开，支持键盘焦点管理、Escape 关闭与焦点返回；18+ Gate、Cookie 对话框提供焦点边界和可见焦点样式。此处是代码审查结论，尚未做浏览器运行验证。
+- Phase 1 当前 UI 的三语草稿已覆盖首页、功能状态页和法律页面；还没有真实日期数据或业务表单，日期/数字格式和验证错误文案会随相应功能实施。
 - 首页地图目前是明确声明的插画占位，不包含可信行政边界或真实地点数据；帖子、Tags、账号和统计仍为空状态。
 - Phase 0 现状和选择性迁移证据见 MASTER_PLAN.md 完成记录及项目 docs。未复制小时代的用户/生产数据、凭据或应用代码。
 - Supabase、SMTP、Turnstile、Cloudflare/R2、GA4、Search Console、Vercel 和 Production 均未配置或验证。代码完成不代表上线。
