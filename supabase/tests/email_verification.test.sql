@@ -39,15 +39,23 @@ select ok(
 select ok(
   not has_function_privilege('anon', 'public.initialize_my_profile(text)', 'EXECUTE')
   and has_function_privilege('authenticated', 'public.initialize_my_profile(text)', 'EXECUTE')
-  and not has_function_privilege('anon', 'private.initialize_my_profile(text)', 'EXECUTE'),
-  'profile initialization is available only through the authenticated boundary'
+  and not has_function_privilege('anon', 'private.initialize_my_profile(text)', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'public.create_my_email_verification(bytea)', 'EXECUTE')
+  and not has_function_privilege('service_role', 'public.create_my_email_verification(bytea)', 'EXECUTE')
+  and has_function_privilege('service_role', 'public.create_my_email_verification_for_user(uuid,text,bytea)', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'public.create_my_email_verification_for_user(uuid,text,bytea)', 'EXECUTE'),
+  'profile initialization is authenticated and email token creation is server-only'
 );
 
-select is(public.create_my_email_verification(decode(repeat('11', 32), 'hex')), true, 'first token hash can be registered');
-select is(public.create_my_email_verification(decode(repeat('22', 32), 'hex')), true, 'second token request is permitted in the hourly window');
-select is(public.create_my_email_verification(decode(repeat('33', 32), 'hex')), true, 'third token request is permitted in the hourly window');
-select is(public.create_my_email_verification(decode(repeat('44', 32), 'hex')), false, 'fourth token request is rate limited');
+reset role;
+set local role service_role;
+select is(public.create_my_email_verification_for_user('80000000-0000-4000-8000-000000000001', 'verification@example.invalid', decode(repeat('11', 32), 'hex')), true, 'server can register the first token hash');
+select is(public.create_my_email_verification_for_user('80000000-0000-4000-8000-000000000001', 'verification@example.invalid', decode(repeat('22', 32), 'hex')), true, 'server can issue a second token in the hourly window');
+select is(public.create_my_email_verification_for_user('80000000-0000-4000-8000-000000000001', 'verification@example.invalid', decode(repeat('33', 32), 'hex')), true, 'server can issue a third token in the hourly window');
+select is(public.create_my_email_verification_for_user('80000000-0000-4000-8000-000000000001', 'verification@example.invalid', decode(repeat('44', 32), 'hex')), false, 'fourth token request is rate limited');
+reset role;
 select is((select pg_catalog.count(*)::integer from private.email_verification_tokens where user_id = auth.uid() and consumed_at is null), 1, 'each resend invalidates prior unused tokens');
+set local role authenticated;
 select is(public.verify_submission_email(decode(repeat('ff', 32), 'hex')), false, 'unknown token hash cannot verify an account');
 select is(public.verify_submission_email(decode(repeat('33', 32), 'hex')), true, 'valid token hash marks the profile verified');
 select is(public.verify_submission_email(decode(repeat('33', 32), 'hex')), false, 'email verification token can only be consumed once');
@@ -65,13 +73,13 @@ select is(
   null::timestamptz,
   'changing the Auth email clears MMWR submission verification'
 );
-select set_config('request.jwt.claims', '{"sub":"80000000-0000-4000-8000-000000000001","role":"anon","aal":"aal1"}', true);
-set local role anon;
 select ok(
   has_function_privilege('anon', 'public.verify_submission_email(bytea)', 'EXECUTE')
   and not has_function_privilege('anon', 'private.verify_submission_email(bytea)', 'EXECUTE'),
   'anonymous verification consumes only a hash through the exposed wrapper'
 );
+select set_config('request.jwt.claims', '{"sub":"80000000-0000-4000-8000-000000000001","role":"anon","aal":"aal1"}', true);
+set local role anon;
 select is(public.verify_submission_email(decode(repeat('33', 32), 'hex')), false, 'anonymous replay cannot re-consume a verification token');
 reset role;
 

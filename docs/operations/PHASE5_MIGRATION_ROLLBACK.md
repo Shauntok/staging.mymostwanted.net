@@ -1,0 +1,29 @@
+# Phase 5 migration rollback guide
+
+This is a local recovery plan, not an executable down migration. The Phase 5 migrations and scheduled cleanup have not been applied to Staging or Production from this worktree. Do not apply the cleanup schedule to a hosted project before privacy review and the Phase 5 acceptance gate.
+
+The initial First-party Page View aggregate and rate-limit tables from `20260928121408_mmwr_first_party_analytics.sql` are covered in [`INITIAL_MIGRATION_ROLLBACK.md`](INITIAL_MIGRATION_ROLLBACK.md); later Phase 5 corrections and jobs remain documented here.
+
+## `20261001044447_exclude_submission_analytics_route.sql`
+
+This forward correction removes the submission draft route from the accepted Page View categories and hides historic `submit` aggregates from the staff reporting RPC without deleting those rows. Keep the exclusion enabled while correcting related code. If a future approved analytics policy changes the route scope, use a reviewed forward migration that preserves the browser/API/RPC/report boundary and does not expose old aggregates by accident. Do not delete the retained aggregate rows as a rollback shortcut; record the policy decision and Staging evidence before changing the report projection.
+
+## `20261001044906_valid_read_event_pipeline.sql`
+
+This migration adds default-off Valid Read/Hot settings, short-lived deduplication/rate-limit material, hourly post counts, restricted collection/ranking RPCs, and the `purge-expired-valid-read-data` daily cleanup job. It does not by itself authorize collection or public Hot. Keep `VALID_READS_ENABLED`, `NEXT_PUBLIC_VALID_READS_ENABLED`, `HOT_RANKING_ENABLED`, and the private database settings disabled during recovery. Prefer a forward correction. If the pipeline is retired, first stop its callers and unschedule only its named cron job after confirming the deployed dependency graph; retain audit/settings and aggregate data until an explicit retention/deletion decision has been approved. Do not drop the underlying data or broaden RPC grants to make older code work.
+
+## `20261001050300_analytics_page_view_rate_limit_retention.sql`
+
+This forward migration replaces `private.purge_expired_valid_read_data()` so its existing scheduled run also deletes expired Page View rate-limit HMACs older than 48 hours. It does not create a second scheduled job, change Page View collection, or enable Valid Read/Hot. The already scheduled job remains daily at 03:31 database time. Consequently, rate-limit digests become eligible after 48 hours and are removed on the next daily run (up to roughly one additional day); route aggregates become eligible after 13 months and are removed on the next run. The source migration also records deletion counts only as a function result; no new audit or event data is created.
+
+If recovery is required after applying this migration, first keep all analytics/Valid Read/Hot flags disabled and pause the existing `purge-expired-valid-read-data` cron job. Restore the exact prior function body from `20261001044906_valid_read_event_pipeline.sql`, then review and resume the existing job only if the previous cleanup behavior is still approved. Do not drop aggregate, limiter, deduplication, audit, or cron data as a rollback shortcut. Record the project, environment, migration ID, job state, backup evidence, and observed result in `HANDOFF.md`.
+
+The planned 48-hour/13-month thresholds remain local defaults pending privacy review. A Staging dry run must verify UTC/date boundaries, job owner and cadence, deleted-row counts, disabled collection flags, and that no production data or credentials are used.
+
+## `20261004120000_hot_ranked_posts_pagination.sql`
+
+This forward migration replaces the one-argument public Hot RPC with the same ranking projection and a bounded optional offset. Keep `HOT_RANKING_ENABLED`, both Valid Read environment flags, and private database collection/Hot settings disabled during recovery. The function continues to return only published story IDs and aggregate counts/scores, preserves deterministic score/publication-time/ID ordering, and grants execution only to `anon` and `authenticated`. Its page size is limited to 13 (12 visible rows plus a next-page sentinel) and offset to 999,996. If recovery is needed, first keep all Hot/collection gates off and apply a reviewed forward migration restoring the exact one-argument function body and grants from `20261003130000_mmwr_clarification_system.sql`; do not broaden grants or expose analytics tables. The client must not report a successful page when the RPC or its public preview join is unavailable. No database migration or SQL validation has been run from this worktree.
+
+## `20261004180000_mmwr_owner_campaign_crm.sql`
+
+Adds private Owner-only quote records and a changed-field audit for customer name, MYR quote amount, Flat Fee/CPM/CPC quote model, proposed slot note, optional dates, text-only creative notes, and lifecycle status. Reads and writes require Owner plus recent TOTP; writes also require a reason. Admin allowlists remain unchanged. It adds `campaign_crm` to the Owner dashboard default and raises the layout bound to 20. It does not create contact fields, file uploads, advertising inventory/delivery, tracking, billable events, or invoices. Auth-account deletion may null the creator/actor identity references while retaining quote and audit records; the audit remains append-only except for that nullification. The retention period for those commercial records remains a pre-live policy decision. If recovery is required after applying it, first hide the widget and stop CRM writes; preserve campaign/audit rows, then review live grants, dependencies, and migration history before any forward-only correction. Do not treat CPM/CPC quotes as usage or bills. This migration is local and has not been applied or SQL-validated.

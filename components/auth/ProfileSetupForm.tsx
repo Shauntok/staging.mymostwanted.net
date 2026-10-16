@@ -10,13 +10,14 @@ const labels = {
   ms: {title:"Lengkapkan persediaan akaun",intro:"Pilih nama pengguna yang unik. E-mel digunakan untuk log masuk dan tidak dipaparkan pada hantaran awam.",username:"Nama pengguna",save:"Simpan dan teruskan",pending:"Sedang diproses…",usernameFormat:"Nama pengguna mesti 3–24 huruf Inggeris, nombor atau garis bawah.",usernameUnavailable:"Nama pengguna telah digunakan atau tidak dapat disimpan. Pilih yang lain.",signInFirst:"Log masuk untuk meneruskan.",serviceUnavailable:"Perkhidmatan sementara tidak tersedia. Cuba lagi kemudian."}
 } as const;
 
-export function ProfileSetupForm() {
+export function ProfileSetupForm({redirectTo="/account"}:{redirectTo?:string}) {
   const {locale} = usePreferences();
   const t = labels[locale];
   const [state, action, pending] = useActionState(initializeProfileAction, {key:""});
   return <section className="auth-panel" aria-labelledby="profile-setup-title">
     <p className="eyebrow">MMWR · ACCOUNT</p><h1 id="profile-setup-title">{t.title}</h1><p className="auth-intro">{t.intro}</p>
     <form action={action} className="auth-form">
+      <input type="hidden" name="next" value={redirectTo}/>
       <label>{t.username}<input name="username" autoComplete="username" minLength={3} maxLength={24} pattern="[A-Za-z0-9_]{3,24}" required/></label>
       <button className="button button-primary" disabled={pending}>{pending ? t.pending : t.save}</button>
       {state.key && <p role="alert" className="auth-message">{t[state.key as keyof typeof t] ?? t.serviceUnavailable}</p>}

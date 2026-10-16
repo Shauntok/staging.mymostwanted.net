@@ -1,0 +1,38 @@
+.page{width:min(1180px,calc(100% - 40px));margin:24px auto 46px;color:var(--ink)}
+.heading{margin-bottom:19px}
+.heading h1{margin:7px 0;color:var(--ink);font-size:clamp(25px,4vw,34px);letter-spacing:-.035em}
+.heading>p:last-child{max-width:800px;margin:0;color:var(--muted);font-size:12px;line-height:1.6}
+.section,.reset{margin-top:18px;padding:19px;border:1px solid var(--line);border-radius:15px;background:var(--surface)}
+.sectionHeading{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:14px}
+.sectionHeading h2{margin:0;color:var(--ink);font-size:18px;letter-spacing:-.02em}
+.sectionHeading p{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.55}
+.sectionHeading>.button{flex:0 0 auto}
+.widgets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:13px}
+.widget{min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.widgetHeading{min-height:45px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--map) 38%,var(--surface))}
+.widgetHeading h3{min-width:0;margin:0;color:var(--ink);font-size:12px;line-height:1.35}
+.controls{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px}
+.controls button,.registry button{min-height:29px;padding:4px 8px;border:1px solid var(--line-strong);border-radius:7px;background:var(--surface);color:var(--ink);font:inherit;font-size:10px;cursor:pointer}
+.controls button:hover,.registry button:hover{border-color:var(--accent);color:var(--accent)}
+.controls button:disabled,.registry button:disabled{opacity:.48;cursor:not-allowed}
+.dragHandle{display:inline-grid;place-items:center;min-height:29px;min-width:29px;padding:4px 8px;border:1px solid var(--line-strong);border-radius:7px;background:var(--surface);color:var(--muted);font:inherit;font-size:14px;line-height:1;cursor:grab;touch-action:none;user-select:none}
+.dragHandle:hover:not([aria-disabled="true"]){border-color:var(--accent);color:var(--accent)}
+.dragHandle[aria-disabled="true"]{opacity:.48;cursor:not-allowed}
+.dragHandle:active{cursor:grabbing}
+.widgetDragging{opacity:.68;border-style:dashed}
+.controls button:focus-visible,.registry button:focus-visible,.resetForm input:focus-visible,.resetForm textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.widgetContent{min-width:0;padding:10px;overflow-x:auto}
+.registry{margin-top:17px;padding-top:14px;border-top:1px solid var(--line)}
+.registry h3{margin:0 0 9px;color:var(--ink);font-size:13px}
+.registry>p{margin:0;color:var(--muted);font-size:11px}
+.registry ul{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.registry li{display:flex;align-items:center;gap:9px;padding:5px 6px 5px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);font-size:11px}
+.empty,.status{margin:12px 0;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:color-mix(in srgb,var(--map) 35%,var(--surface));color:var(--muted);font-size:11px;line-height:1.55}
+.reset{border-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
+.resetForm{display:grid;grid-template-columns:minmax(0,2fr) minmax(170px,1fr) auto;align-items:end;gap:10px;padding-top:8px}
+.resetForm label{display:grid;gap:5px;color:var(--ink);font-size:11px;font-weight:650}
+.resetForm input,.resetForm textarea{width:100%;min-width:0;min-height:39px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:12px}
+.resetForm textarea{min-height:60px;resize:vertical;line-height:1.45}
+.resetForm .button{white-space:nowrap}
+@media(max-width:760px){.widgets{grid-template-columns:1fr}.resetForm{grid-template-columns:1fr 1fr}.resetForm label:first-child{grid-column:1/-1}.resetForm .button{justify-self:start}}
+@media(max-width:560px){.page{width:calc(100% - 24px);margin:15px auto 30px}.section,.reset{padding:14px 11px}.sectionHeading{align-items:flex-start;flex-direction:column}.sectionHeading>.button{align-self:flex-start}.widgetHeading{align-items:flex-start;flex-direction:column}.controls{justify-content:flex-start}.resetForm{grid-template-columns:1fr}.resetForm label:first-child{grid-column:auto}}

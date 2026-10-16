@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/shell/LocalizedLink";
 import { usePreferences } from "@/components/shell/PreferencesProvider";
 import { legalCopy, legalRoutes, type LegalPageId } from "./legalCopy";
 import styles from "./LegalPage.module.css";

@@ -1,19 +1,164 @@
 "use client";
-import { createContext,useCallback,useContext,useEffect,useMemo,useState } from "react";
-import type { Locale } from "@/lib/i18n/catalog";
-type Consent={analytics:boolean;advertising:boolean};
-type Preferences={locale:Locale;theme:"light"|"dark";consent:Consent;ageApproved:boolean;ageDenied:boolean;consentOpen:boolean;hydrated:boolean;setLocale:(x:Locale)=>void;setTheme:(x:"light"|"dark")=>void;approveAge:()=>void;denyAge:()=>void;saveConsent:(x:Consent)=>void;openConsent:()=>void;closeConsent:()=>void};
-const Context=createContext<Preferences|null>(null);
-const read=(n:string)=>document.cookie.split("; ").find((p)=>p.startsWith(n+"="))?.slice(n.length+1);
-const write=(n:string,v:string,age=31536000)=>{document.cookie=n+"="+encodeURIComponent(v)+"; Path=/; Max-Age="+age+"; SameSite=Lax"+(location.protocol==="https:"?"; Secure":"");};
-export function PreferencesProvider({children}:{children:React.ReactNode}){
- const [locale,L]=useState<Locale>("en"),[theme,T]=useState<"light"|"dark">("light"),[consent,C]=useState<Consent>({analytics:false,advertising:false}),[ageApproved,A]=useState(false),[ageDenied,D]=useState(false),[consentOpen,O]=useState(false),[consentChosen,Q]=useState(false),[hydrated,H]=useState(false);
- useEffect(()=>{const l=read("mmwr_locale") as Locale|undefined,th=read("mmwr_theme"),age=read("mmwr_age"),co=read("mmwr_consent");if(l&&["zh-CN","en","ms"].includes(l))L(l);else if(navigator.language.toLowerCase().startsWith("zh"))L("zh-CN");else if(navigator.language.toLowerCase().startsWith("ms"))L("ms");if(th==="dark"||th==="light")T(th);else if(window.matchMedia("(prefers-color-scheme: dark)").matches)T("dark");if(age)A(true);if(co){try{const v=JSON.parse(decodeURIComponent(co)) as Consent;C({analytics:v.analytics===true,advertising:v.advertising===true});Q(true);}catch{Q(false);}}H(true);},[]);
- useEffect(()=>{document.documentElement.lang=locale;document.documentElement.dataset.theme=theme;},[locale,theme]);
- const setLocale=useCallback((x:Locale)=>{L(x);write("mmwr_locale",x);},[]),setTheme=useCallback((x:"light"|"dark")=>{T(x);write("mmwr_theme",x);},[]),approveAge=useCallback(()=>{A(true);D(false);write("mmwr_age","approved",2592000);},[]),denyAge=useCallback(()=>{D(true);A(false);document.cookie="mmwr_age=; Path=/; Max-Age=0; SameSite=Lax";},[]);
- const saveConsent=useCallback((x:Consent)=>{const v={analytics:x.analytics===true,advertising:x.advertising===true};C(v);Q(true);O(false);write("mmwr_consent",JSON.stringify(v));},[]);
- const value=useMemo<Preferences>(()=>({locale,theme,consent,ageApproved,ageDenied,consentOpen,hydrated,setLocale,setTheme,approveAge,denyAge,saveConsent,openConsent:()=>O(true),closeConsent:()=>O(false)}),[locale,theme,consent,ageApproved,ageDenied,consentOpen,hydrated,setLocale,setTheme,approveAge,denyAge,saveConsent]);
- useEffect(()=>{if(hydrated&&ageApproved&&!consentChosen)O(true);},[hydrated,ageApproved,consentChosen]);
- return <Context.Provider value={value}>{children}</Context.Provider>;
+
+import {createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore} from "react";
+import {usePathname} from "next/navigation";
+import {isLocale, type Locale} from "@/lib/i18n/catalog";
+import {localeFromSegment,localizedPath} from "@/lib/i18n/routing";
+
+type Consent = {analytics: boolean; advertising: boolean};
+type StoredPreferences = {
+  locale: Locale;
+  theme: "light" | "dark";
+  consent: Consent;
+  ageApproved: boolean;
+  consentChosen: boolean;
+  hydrated: boolean;
+};
+type Preferences = {
+  locale: Locale;
+  theme: "light" | "dark";
+  consent: Consent;
+  ageApproved: boolean;
+  ageDenied: boolean;
+  consentOpen: boolean;
+  hydrated: boolean;
+  setLocale: (value: Locale) => void;
+  setTheme: (value: "light" | "dark") => void;
+  approveAge: () => void;
+  denyAge: () => void;
+  saveConsent: (value: Consent) => void;
+  openConsent: () => void;
+  closeConsent: () => void;
+};
+
+const Context = createContext<Preferences | null>(null);
+const preferenceChangeEvent = "mmwr-preferences-change";
+const defaultConsent: Consent = {analytics: false, advertising: false};
+
+const readCookie = (name: string) => document.cookie.split("; ").find((part) => part.startsWith(`${name}=`))?.slice(name.length + 1);
+const writeCookie = (name: string, value: string, age = 31536000) => {
+  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${age}; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
+  window.dispatchEvent(new Event(preferenceChangeEvent));
+};
+
+function subscribeToPreferences(onChange: () => void) {
+  window.addEventListener(preferenceChangeEvent, onChange);
+  window.addEventListener("focus", onChange);
+  return () => {
+    window.removeEventListener(preferenceChangeEvent, onChange);
+    window.removeEventListener("focus", onChange);
+  };
 }
-export function usePreferences(){const value=useContext(Context);if(!value)throw new Error("usePreferences must be used within PreferencesProvider");return value;}
+
+function getBrowserPreferencesSnapshot(pathLocale?:Locale) {
+  const localeCookie = readCookie("mmwr_locale");
+  const locale = pathLocale??(isLocale(localeCookie)
+    ? localeCookie
+    : navigator.language.toLowerCase().startsWith("zh")
+      ? "zh-CN"
+      : navigator.language.toLowerCase().startsWith("ms")
+        ? "ms"
+        : "en");
+  const themeCookie = readCookie("mmwr_theme");
+  const theme = themeCookie === "dark" || themeCookie === "light"
+    ? themeCookie
+    : window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  const consentCookie = readCookie("mmwr_consent");
+  let consent = defaultConsent;
+  let consentChosen = false;
+  if (consentCookie) {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(consentCookie)) as Partial<Consent>;
+      consent = {analytics: parsed.analytics === true, advertising: parsed.advertising === true};
+      consentChosen = true;
+    } catch {
+      // Ignore malformed preference cookies and ask the visitor to choose again.
+    }
+  }
+
+  const snapshot: StoredPreferences = {
+    locale,
+    theme,
+    consent,
+    ageApproved: Boolean(readCookie("mmwr_age")),
+    consentChosen,
+    hydrated: true,
+  };
+  return JSON.stringify(snapshot);
+}
+
+export function PreferencesProvider({children, initialLocale = "en"}: {children: React.ReactNode; initialLocale?: Locale}) {
+  const pathname=usePathname();
+  const pathLocale=localeFromSegment(pathname.split("/")[1]);
+  const serverSnapshot = useCallback(() => JSON.stringify({
+    locale: initialLocale,
+    theme: "light",
+    consent: defaultConsent,
+    ageApproved: false,
+    consentChosen: false,
+    hydrated: false,
+  } satisfies StoredPreferences), [initialLocale]);
+  const browserSnapshot=useCallback(()=>getBrowserPreferencesSnapshot(pathLocale??undefined),[pathLocale]);
+  const stored = JSON.parse(useSyncExternalStore(subscribeToPreferences, browserSnapshot, serverSnapshot)) as StoredPreferences;
+  const [ageDenied, setAgeDenied] = useState(false);
+  const [manuallyOpenedConsent, setManuallyOpenedConsent] = useState(false);
+  const consentOpen = manuallyOpenedConsent || (stored.hydrated && stored.ageApproved && !stored.consentChosen);
+
+  useEffect(() => {
+    document.documentElement.lang = stored.locale;
+    document.documentElement.dataset.theme = stored.theme;
+  }, [stored.locale, stored.theme]);
+
+  useEffect(()=>{
+    if(pathLocale)writeCookie("mmwr_locale",pathLocale);
+  },[pathLocale]);
+
+  const setLocale = useCallback((value: Locale) => {
+    writeCookie("mmwr_locale", value);
+    if(pathLocale)window.location.assign(localizedPath(`${window.location.pathname}${window.location.search}${window.location.hash}`,value));
+  }, [pathLocale]);
+  const setTheme = useCallback((value: "light" | "dark") => writeCookie("mmwr_theme", value), []);
+  const approveAge = useCallback(() => {
+    writeCookie("mmwr_age", "approved", 2592000);
+    setAgeDenied(false);
+  }, []);
+  const denyAge = useCallback(() => {
+    setAgeDenied(true);
+    document.cookie = `mmwr_age=; Path=/; Max-Age=0; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
+    window.dispatchEvent(new Event(preferenceChangeEvent));
+  }, []);
+  const saveConsent = useCallback((value: Consent) => {
+    writeCookie("mmwr_consent", JSON.stringify({analytics: value.analytics === true, advertising: value.advertising === true}));
+    void fetch("/api/analytics/consent-attestation",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({analytics:value.analytics===true}),keepalive:true}).catch(()=>undefined);
+    setManuallyOpenedConsent(false);
+  }, []);
+  const openConsent = useCallback(() => setManuallyOpenedConsent(true), []);
+  const closeConsent = useCallback(() => setManuallyOpenedConsent(false), []);
+
+  const value = useMemo<Preferences>(() => ({
+    locale: stored.locale,
+    theme: stored.theme,
+    consent: stored.consent,
+    ageApproved: stored.ageApproved,
+    ageDenied,
+    consentOpen,
+    hydrated: stored.hydrated,
+    setLocale,
+    setTheme,
+    approveAge,
+    denyAge,
+    saveConsent,
+    openConsent,
+    closeConsent,
+  }), [stored, ageDenied, consentOpen, setLocale, setTheme, approveAge, denyAge, saveConsent, openConsent, closeConsent]);
+
+  return <Context.Provider value={value}>{children}</Context.Provider>;
+}
+
+export function usePreferences() {
+  const value = useContext(Context);
+  if (!value) throw new Error("usePreferences must be used within PreferencesProvider");
+  return value;
+}

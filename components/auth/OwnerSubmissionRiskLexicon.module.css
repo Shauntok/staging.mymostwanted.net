@@ -1,0 +1,36 @@
+.panel{padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.heading h3{margin:0;color:var(--ink);font-size:15px}
+.intro,.state{margin:9px 0;color:var(--muted);font-size:11px;line-height:1.55}
+.notice{margin:10px 0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:color-mix(in srgb,var(--map) 38%,var(--surface));color:var(--muted);font-size:10px;line-height:1.5}
+.button{min-height:31px;padding:6px 10px;border:1px solid var(--line-strong);border-radius:7px;background:var(--surface);color:var(--ink);font:inherit;font-size:10px;cursor:pointer}
+.button:hover{border-color:var(--accent);color:var(--accent)}
+.button:disabled{opacity:.5;cursor:not-allowed}
+.list{display:grid;gap:8px;margin:11px 0 0;padding:0;list-style:none}
+.item{display:grid;gap:7px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.ruleHead,.meta{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.ruleHead strong{color:var(--ink);font-size:12px;overflow-wrap:anywhere}
+.ruleHead span{flex:none;color:var(--muted);font-size:9px}
+.ruleHead span[data-risk="high"]{color:var(--danger,var(--accent))}
+.meta{flex-wrap:wrap;justify-content:flex-start;color:var(--muted);font-size:9px}
+.actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px;padding:11px;border:1px solid var(--line);border-radius:9px;background:color-mix(in srgb,var(--map) 18%,var(--surface))}
+.form label{display:grid;align-content:start;gap:5px;color:var(--muted);font-size:10px}
+.form label:first-child,.form label:nth-last-child(2),.form .actions{grid-column:1/-1}
+.form input:not([type="checkbox"]),.form select,.form textarea{width:100%;min-height:34px;padding:7px 9px;border:1px solid var(--line-strong);border-radius:7px;background:var(--card);color:var(--ink);font:inherit;font-size:11px}
+.form textarea{min-height:65px;resize:vertical}
+.form small{color:var(--muted);font-size:9px;line-height:1.4}
+.check{grid-template-columns:auto 1fr!important;align-items:center}
+.check input{accent-color:var(--accent)}
+.feedback{margin:8px 0 0;color:var(--muted);font-size:10px}
+.audit{margin-top:15px;padding-top:12px;border-top:1px solid var(--line)}
+.audit h4{margin:0 0 8px;color:var(--ink);font-size:12px}
+.auditList{display:grid;gap:7px;margin:0;padding:0;list-style:none}
+.auditList li{padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.auditList li>div{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.auditList strong{font-size:10px;overflow-wrap:anywhere}
+.auditList time,.auditList small{color:var(--muted);font-size:9px}
+.auditList p{margin:5px 0;color:var(--muted);font-size:10px;line-height:1.45}
+.auditList small{display:block;margin-top:4px;overflow-wrap:anywhere}
+.button:focus-visible,.form input:focus-visible,.form select:focus-visible,.form textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:520px){.form{grid-template-columns:1fr}.form label:first-child,.form label:nth-last-child(2),.form .actions{grid-column:auto}.ruleHead,.auditList li>div{align-items:flex-start;flex-direction:column}}

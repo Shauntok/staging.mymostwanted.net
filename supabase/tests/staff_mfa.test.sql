@@ -19,6 +19,11 @@ values
 insert into private.user_roles (user_id, role)
 values ('81000000-0000-4000-8000-000000000001', 'owner');
 
+insert into auth.sessions (id, user_id, created_at, updated_at, aal)
+values ('81000000-0000-4000-8000-000000000011', '81000000-0000-4000-8000-000000000001', pg_catalog.now(), pg_catalog.now(), 'aal2');
+insert into private.staff_session_activity (session_id, started_at, last_activity_at)
+values ('81000000-0000-4000-8000-000000000011', pg_catalog.clock_timestamp(), pg_catalog.clock_timestamp());
+
 select ok(
   has_function_privilege('authenticated', 'public.has_staff_identity()', 'EXECUTE')
   and not has_function_privilege('anon', 'public.has_staff_identity()', 'EXECUTE')
@@ -44,7 +49,13 @@ set local role authenticated;
 select is(private.has_staff_role('owner'), false, 'recovery-code AAL2 can recover the factor but cannot authorize staff data');
 reset role;
 
-select set_config('request.jwt.claims', '{"sub":"81000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2","amr":[{"method":"mfa/totp","timestamp":1000}]}', true);
+select set_config('request.jwt.claims', pg_catalog.jsonb_build_object(
+  'sub', '81000000-0000-4000-8000-000000000001', 'role', 'authenticated', 'aal', 'aal2',
+  'session_id', '81000000-0000-4000-8000-000000000011',
+  'amr', pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+    'method', 'mfa/totp', 'timestamp', pg_catalog.floor(pg_catalog.date_part('epoch', pg_catalog.clock_timestamp()))::bigint
+  ))
+)::text, true);
 set local role authenticated;
 select is(private.has_staff_role('owner'), true, 'database-assigned Owner passes the AAL2 staff gate');
 select is(private.has_staff_role('admin'), false, 'AAL2 does not create an unassigned staff role');

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { FeatureStatus } from "@/components/feature-status/FeatureStatus";
+import {SubmissionDraft} from "@/components/submissions/SubmissionDraft";
 
 export const metadata: Metadata = {
-  title: "Submit a post — feature unavailable",
-  description: "MMWR submission is being prepared. Sign-in, registration and submission are unavailable.",
+  title: "Submission form preview — MMWR",
+  description: "Preview the MMWR submission form. Submissions are not accepted or saved.",
   robots: { index: false, follow: false },
 };
 
-export default function SubmitPage() { return <FeatureStatus feature="submit" />; }
+export default function SubmitPage() { return <SubmissionDraft />; }

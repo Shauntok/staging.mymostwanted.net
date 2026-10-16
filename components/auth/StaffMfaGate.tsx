@@ -1,7 +1,9 @@
 "use client";
 
 import {useEffect, useState, type FormEvent} from "react";
+import Image from "next/image";
 import {useRouter} from "next/navigation";
+import Link from "@/components/shell/LocalizedLink";
 import {usePreferences} from "@/components/shell/PreferencesProvider";
 import {createSupabaseBrowserClient} from "@/lib/supabase/client";
 
@@ -34,10 +36,11 @@ export function StaffMfaGate() {
         const supabase = createSupabaseBrowserClient();
         const {data: {user}} = await supabase.auth.getUser();
         if (!user) { if (alive) setState("signed-out"); return; }
-        const [{data: {all}}, {data: assurance}] = await Promise.all([
+        const [factorResult, {data: assurance}] = await Promise.all([
           supabase.auth.mfa.listFactors(),
           supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
         ]);
+        const all = factorResult.data?.all ?? [];
         if (!alive) return;
         if (assurance?.currentLevel === "aal2") {
           const {data: claimsData, error: claimsError} = await supabase.auth.getClaims();
@@ -89,9 +92,9 @@ export function StaffMfaGate() {
   async function finishSecondFactor() {
     const supabase = createSupabaseBrowserClient();
     if (recoveringFactor) {
-      const {data: {totp}, error: listError} = await supabase.auth.mfa.listFactors();
+      const {data: factorData, error: listError} = await supabase.auth.mfa.listFactors();
       if (listError) { setMessage(t.setupError); return; }
-      for (const factor of totp) {
+      for (const factor of factorData?.totp ?? []) {
         if (factor.id === factorId || factor.status !== "verified") continue;
         const {error} = await supabase.auth.mfa.unenroll({factorId:factor.id});
         if (error) { setMessage(t.setupError); return; }
@@ -171,14 +174,14 @@ export function StaffMfaGate() {
   return <section className="auth-panel mfa-panel" aria-labelledby="staff-mfa-title">
     <p className="eyebrow">MMWR · STAFF SECURITY</p><h1 id="staff-mfa-title">{t.title}</h1>
     {state === "loading" && <p role="status" className="auth-intro">{t.loading}</p>}
-    {state === "signed-out" && <p className="auth-message" role="alert">{t.signedOut} <a href="/account">{t.signIn}</a></p>}
+    {state === "signed-out" && <p className="auth-message" role="alert">{t.signedOut} <Link href="/account">{t.signIn}</Link></p>}
     {state === "error" && <p className="auth-message" role="alert">{message}</p>}
     {state !== "loading" && state !== "signed-out" && state !== "error" && <p className="auth-intro">{t.intro}</p>}
     {state === "enroll" && recoveringFactor && <p className="auth-intro">{t.recoveryReset}</p>}
     {state === "enroll" && !qrCode && <button className="button button-primary" disabled={busy} onClick={startEnrollment}>{busy ? t.loading : t.continue}</button>}
     {state === "enroll" && qrCode && <div className="mfa-enrollment">
       <p>{t.scan}</p>
-      {qrCode.startsWith("data:image/svg+xml") && <img className="mfa-qr" src={qrCode} alt="TOTP setup QR code"/>}
+      {qrCode.startsWith("data:image/svg+xml") && <Image className="mfa-qr" src={qrCode} alt="TOTP setup QR code" width={240} height={240} unoptimized/>}
       <p><strong>{t.secret}</strong><br/><code>{totpSecret}</code></p>
       <form className="auth-form" onSubmit={verifyCode}>
         <label>{t.code}<input inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))} required/></label>

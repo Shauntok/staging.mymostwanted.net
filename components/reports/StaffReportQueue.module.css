@@ -1,0 +1,27 @@
+.page{width:min(1100px,calc(100% - 2rem));margin:2rem auto 5rem;color:var(--ink)}
+.panel{padding:clamp(1.2rem,3vw,2rem);border:1px solid var(--line);border-radius:1.25rem;background:var(--surface);box-shadow:0 16px 44px #15385812}
+.panel h1{margin:.3rem 0;font-size:clamp(1.8rem,4vw,2.6rem)}
+.intro{max-width:68ch;color:var(--muted);line-height:1.6}
+.reload{margin:.5rem 0 1rem;border:1px solid var(--line);border-radius:.75rem;background:var(--surface);color:var(--ink);padding:.6rem .9rem;cursor:pointer}
+.reload:disabled{opacity:.65;cursor:wait}
+.state{padding:1rem;border:1px dashed var(--line);border-radius:.9rem;color:var(--muted)}
+.list{display:grid;gap:1rem;list-style:none;margin:1rem 0 0;padding:0}
+.card{min-width:0;padding:1rem;border:1px solid var(--line);border-radius:1rem;background:var(--surface);box-shadow:0 8px 26px #1538580b}
+.heading{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;color:var(--ink);overflow-wrap:anywhere}
+.heading strong{color:var(--accent)}
+.heading bdi{font-size:.77rem;color:var(--muted)}
+.details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;margin:1rem 0}
+.details div{min-width:0}
+.details dt,.body span{font-size:.8rem;color:var(--muted)}
+.details dd{margin:.2rem 0 0;overflow-wrap:anywhere;font-size:.92rem}
+.details a{color:var(--accent)}
+.body{padding:.85rem;border-radius:.75rem;background:var(--paper);overflow-wrap:anywhere}
+.body p{white-space:pre-wrap;margin:.45rem 0 0;line-height:1.55}
+.field{display:grid;gap:.35rem;margin-top:.9rem;font-weight:600;font-size:.9rem}
+.field select,.field textarea{width:100%;min-width:0;border:1px solid var(--line);border-radius:.7rem;padding:.7rem;background:var(--surface);color:var(--ink);font:inherit}
+.field textarea{resize:vertical}
+.actions{display:flex;align-items:center;flex-wrap:wrap;gap:.8rem;margin-top:.9rem}
+.actions button{border:0;border-radius:.75rem;background:var(--accent);color:#fff;padding:.7rem 1rem;font:inherit;font-weight:700;cursor:pointer}
+.actions button:disabled{opacity:.6;cursor:not-allowed}
+.actions span{font-size:.88rem;color:var(--muted)}
+@media(max-width:580px){.details{grid-template-columns:1fr}.heading{display:grid}}

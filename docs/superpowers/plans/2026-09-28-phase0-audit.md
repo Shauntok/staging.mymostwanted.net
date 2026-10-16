@@ -11,7 +11,7 @@ Record the current MMWR repository state, selective migration opportunities from
 - Work in `C:\Users\PC\Desktop\mmwr`; do not modify `C:\Users\PC\Desktop\ourlittleage`.
 - Never open or report `.env*`, credentials, production content, backups, or user data from either project.
 - Keep advertising, translation API, comments, VIP, video, drafts and provider integrations off.
-- Preserve the approved homepage Hot Ranked count of 6.
+- Preserve the approved homepage Hot Ranked count of 8.
 - No provider account configuration, network publishing, or Production deployment.
 - Do not add or run tests for this documentation and audit phase.
 

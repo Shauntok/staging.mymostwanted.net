@@ -20,6 +20,24 @@
   text-transform: uppercase;
 }
 
+.selectedArea {
+  display: inline-block;
+  margin: 22px 0 -16px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.regionPicker { margin-top: 28px; }
+.regionPicker > p { margin: 0 0 10px; color: var(--muted); font-size: 11px; }
+.regionPicker ul { display: flex; flex-wrap: wrap; gap: 7px; padding: 0; margin: 0; list-style: none; }
+.regionPicker a { display: inline-flex; min-height: 32px; align-items: center; padding: 0 11px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); color: var(--ink); font-size: 10px; transition: background .15s, border-color .15s, color .15s; }
+.regionPicker a:hover,.regionPicker a[aria-current="page"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.regionPicker a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 .panel h1 {
   margin: 28px 0 22px;
   font-size: clamp(36px, 6vw, 64px);
@@ -48,3 +66,21 @@
 
 .home span { color: var(--accent); }
 .home:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
+
+.searchForm { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px; margin: 24px 0 0; }
+.searchLabel { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.searchInput { min-width: 0; min-height: 46px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 11px; background: var(--surface); color: var(--ink); font: inherit; }
+.searchInput::placeholder { color: var(--muted); opacity: .8; }
+.searchInput:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.searchForm button { min-height: 46px; border-radius: 11px; }
+.searchState { margin-top: 22px; padding: 15px 16px; border: 1px solid var(--line); border-radius: 13px; background: color-mix(in srgb, var(--surface) 84%, var(--map)); }
+.searchState .status { margin: 0 0 6px; font-weight: 650; }
+.searchState .detail { margin: 0; }
+.searchQuery { margin: 0 0 13px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.searchQuery bdi { color: var(--ink); font-weight: 650; }
+
+@media (max-width: 520px) {
+  .searchForm { grid-template-columns: 1fr; }
+  .searchForm button { justify-self: stretch; }
+  .searchState { padding: 13px; }
+}

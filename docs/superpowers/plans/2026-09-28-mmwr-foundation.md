@@ -16,7 +16,7 @@
 - Brand: `MMWR / Malaysia Most Wanted Ranking`; Chinese display name: `马来西亚人渣排行榜`.
 - UI locales: `zh-CN`, `en`, `ms`; user selection persists and overrides device preferences.
 - Light and Dark use one shared component/layout system.
-- Homepage sections: interactive Malaysia map, 6 Latest, 6 Hot Ranked, 12 Smart Mix Tags; every ad placement defaults OFF.
+- Homepage sections: interactive Malaysia map, 8 Latest, 8 Hot Ranked, 12 Smart Mix Tags; every ad placement defaults OFF.
 - Never copy `.env*`, Supabase data, secrets, or production assets from `C:\Users\PC\Desktop\ourlittleage`.
 - Protect RLS, Owner/Admin TOTP 2FA, private internal evidence, audit records, 18+ gate, and consent controls as required launch gates.
 - No Production configuration or deployment until the user completes the guided provider setup.
@@ -104,7 +104,7 @@
 - Modify: `app/page.tsx`, `app/globals.css`.
 
 **Interfaces:**
-- Homepage sections: map → Latest 6 → Hot Ranked 6 → Smart Mix Tags 12 → optional ad slots (OFF).
+- Homepage sections: map → Latest 8 → Hot Ranked 8 → Smart Mix Tags 12 → optional ad slots (OFF).
 - Public post cards will later use one shared responsive card/media-collage component.
 - `MapPanel` is a named integration boundary and must not present invented geographic counts or fake boundaries.
 

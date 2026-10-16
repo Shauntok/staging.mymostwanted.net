@@ -1,0 +1,12 @@
+.state,.note,.empty{margin:0;color:var(--muted);font-size:11px;line-height:1.55}
+.wrap{display:grid;gap:10px}
+.buckets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.bucket{display:grid;align-content:start;gap:8px;min-width:0;padding:10px;border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--surface) 70%,transparent)}
+.bucket h3{margin:0;color:var(--text);font-size:12px;line-height:1.4;font-weight:650}
+.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0}
+.metrics>div{min-width:0;padding:11px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+.metrics dt{color:var(--muted);font-size:10px}
+.metrics dd{margin:5px 0 0;color:var(--text);font-size:20px;font-weight:720;letter-spacing:-.025em;overflow-wrap:anywhere}
+.note{padding-top:8px;border-top:1px solid var(--line)}
+@media(max-width:600px){.buckets{grid-template-columns:1fr}}
+@media(max-width:430px){.metrics{grid-template-columns:1fr}.metrics dd{font-size:18px}}

@@ -9,7 +9,7 @@
 create or replace function private.has_staff_role(p_role text)
 returns boolean
 language sql
-stable
+volatile
 security definer
 set search_path = ''
 as $function$

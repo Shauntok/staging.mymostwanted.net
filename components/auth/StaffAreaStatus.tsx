@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "@/components/shell/LocalizedLink";
 import {usePreferences} from "@/components/shell/PreferencesProvider";
 
 const messages = {
@@ -11,5 +12,5 @@ const messages = {
 export function StaffAreaStatus({denied = false}: {denied?: boolean}) {
   const {locale} = usePreferences();
   const t = messages[locale];
-  return <div className="auth-page"><section className="auth-panel"><p className="eyebrow">MMWR · STAFF</p><h1>{denied ? t.denied : t.readyTitle}</h1><p className="auth-intro">{denied ? t.denied : t.ready}</p><a className="view-all" href="/">{t.home}<span aria-hidden="true">↗</span></a></section></div>;
+  return <div className="auth-page"><section className="auth-panel"><p className="eyebrow">MMWR · STAFF</p><h1>{denied ? t.denied : t.readyTitle}</h1><p className="auth-intro">{denied ? t.denied : t.ready}</p><Link className="view-all" href="/">{t.home}<span aria-hidden="true">↗</span></Link></section></div>;
 }

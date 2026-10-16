@@ -1,0 +1,10 @@
+.panel{padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+.panel h2{margin:0 0 10px;font-size:14px;color:var(--ink)}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0}
+.metrics>div{min-width:0;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.metrics dt{min-height:27px;color:var(--muted);font-size:9px;line-height:1.4}
+.metrics dd{margin:4px 0 0;color:var(--ink);font-size:20px;font-weight:800;line-height:1.2;overflow-wrap:anywhere}
+.off{display:block;color:var(--muted);font-size:9px;font-weight:500;line-height:1.4}
+.note,.notice{margin:9px 0 0;color:var(--muted);font-size:9px;line-height:1.5}
+.notice{padding:9px;border:1px solid var(--line);border-radius:7px;background:var(--surface);font-size:10px}
+@media(max-width:700px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}

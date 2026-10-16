@@ -27,15 +27,19 @@ create policy role_change_audit_owner_read
 create function private.has_recent_totp()
 returns boolean
 language sql
-stable
+volatile
 security definer
 set search_path = ''
 as $function$
+  with wall_clock as materialized (
+    select pg_catalog.clock_timestamp() as checked_at
+  )
   select (select auth.uid()) is not null
     and (select auth.jwt() ->> 'aal') = 'aal2'
     and exists (
       select 1
-      from pg_catalog.jsonb_array_elements(
+      from wall_clock
+      cross join lateral pg_catalog.jsonb_array_elements(
         case
           when pg_catalog.jsonb_typeof((select auth.jwt() -> 'amr')) = 'array'
             then (select auth.jwt() -> 'amr')
@@ -46,7 +50,9 @@ as $function$
         and case
           when (factor.entry ->> 'timestamp') ~ '^[0-9]{1,12}$' then
             (factor.entry ->> 'timestamp')::bigint >=
-              pg_catalog.floor(pg_catalog.date_part('epoch', pg_catalog.now() - interval '10 minutes'))::bigint
+              pg_catalog.floor(pg_catalog.date_part('epoch', wall_clock.checked_at - interval '10 minutes'))::bigint
+            and (factor.entry ->> 'timestamp')::bigint <=
+              pg_catalog.floor(pg_catalog.date_part('epoch', wall_clock.checked_at))::bigint
           else false
         end
     );

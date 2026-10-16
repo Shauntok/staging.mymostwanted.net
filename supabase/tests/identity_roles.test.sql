@@ -2,7 +2,7 @@ create extension if not exists pgtap with schema extensions;
 
 begin;
 
-select plan(22);
+select plan(24);
 
 insert into auth.users (
   id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -16,6 +16,11 @@ values ('10000000-0000-4000-8000-000000000001', 'Owner One!', 'First User');
 
 insert into private.user_roles (user_id, role)
 values ('10000000-0000-4000-8000-000000000001', 'owner');
+
+insert into auth.sessions (id, user_id, created_at, updated_at, aal)
+values ('91000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', pg_catalog.now(), pg_catalog.now(), 'aal2');
+insert into private.staff_session_activity (session_id, started_at, last_activity_at)
+values ('91000000-0000-4000-8000-000000000001', pg_catalog.clock_timestamp(), pg_catalog.clock_timestamp());
 
 select is((select count(*)::integer from public.profiles), 1, 'Auth insertion alone does not create an active profile');
 select ok(
@@ -82,13 +87,13 @@ select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000
 set local role authenticated;
 
 select is((select count(*)::integer from public.profiles), 1, 'user sees only their profile');
+select lives_ok(
+  $$update public.profiles set display_name = 'Updated Name' where id = '10000000-0000-4000-8000-000000000001'$$,
+  'user can update their own display name'
+);
 select is(
-  (with updated as (
-    update public.profiles set display_name = 'Updated Name'
-    where id = '10000000-0000-4000-8000-000000000001'
-    returning display_name
-  ) select pg_catalog.max(display_name) from updated),
-  'Updated Name', 'user can update their own display name'
+  (select profile.display_name from public.profiles as profile where profile.id = '10000000-0000-4000-8000-000000000001'),
+  'Updated Name', 'own display name change is persisted'
 );
 select throws_ok(
   $$update public.profiles set username = 'changed username' where id = '10000000-0000-4000-8000-000000000001'$$,
@@ -105,7 +110,13 @@ select throws_ok(
 select is(private.has_staff_role('owner'), false, 'AAL1 does not satisfy staff authorization');
 reset role;
 
-select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal2","amr":[{"method":"mfa/totp","timestamp":1000}]}', true);
+select set_config('request.jwt.claims', pg_catalog.jsonb_build_object(
+  'sub', '10000000-0000-4000-8000-000000000001', 'role', 'authenticated', 'aal', 'aal2',
+  'session_id', '91000000-0000-4000-8000-000000000001',
+  'amr', pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object(
+    'method', 'mfa/totp', 'timestamp', pg_catalog.floor(pg_catalog.date_part('epoch', pg_catalog.clock_timestamp()))::bigint
+  ))
+)::text, true);
 set local role authenticated;
 select is(private.has_staff_role('owner'), true, 'matching database owner role passes at AAL2');
 select is(private.has_staff_role('admin'), false, 'AAL2 does not grant a database role the user lacks');
@@ -116,21 +127,23 @@ select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000
 set local role authenticated;
 select is(private.has_staff_role('owner'), false, 'another user cannot inherit the owner role');
 select is((select count(*)::integer from public.profiles), 1, 'second user sees only their own profile');
-select is(
-  (with changed as (
-    update public.profiles set display_name = 'Tampered Name'
-    where id = '10000000-0000-4000-8000-000000000001'
-    returning id
-  ) select pg_catalog.count(*)::integer from changed),
-  0, 'second user cannot update the first user profile'
+select lives_ok(
+  $$update public.profiles set display_name = 'Tampered Name' where id = '10000000-0000-4000-8000-000000000001'$$,
+  'another user update is filtered by row-level security'
 );
 reset role;
+select is(
+  (select profile.display_name from public.profiles as profile where profile.id = '10000000-0000-4000-8000-000000000001'),
+  'Updated Name', 'another user cannot change the first user profile'
+);
 
 insert into private.username_history (user_id, username)
 values ('10000000-0000-4000-8000-000000000001', 'Former Name');
-select throws_ok(
-  $$delete from auth.users where id = '10000000-0000-4000-8000-000000000001'$$,
-  '23503', null, 'Auth deletion is blocked while username history requires policy cleanup'
+delete from auth.users where id = '10000000-0000-4000-8000-000000000001';
+select is(
+  (select pg_catalog.count(*)::integer from private.username_history
+   where user_id = '10000000-0000-4000-8000-000000000001'),
+  0, 'Auth deletion removes the account historical usernames under the approved deletion policy'
 );
 
 select * from finish();

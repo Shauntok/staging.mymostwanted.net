@@ -12,7 +12,7 @@ Add useful, trilingual legal/privacy/community-rule and correction/removal entry
 - Do not touch Our Little Age or any real service account, user data, submissions, evidence, or credentials.
 - Do not present draft text as finalized legal advice, assert a selected vendor/contact route, or claim a service is live.
 - Keep ads, paid services, automatic translation, analytics scripts, and other optional integrations OFF.
-- Preserve locale controls and approved homepage counts, including Hot Ranked 6.
+- Preserve locale controls and approved homepage counts, including Hot Ranked 8.
 - Do not add or run tests for this focused implementation task.
 - Avoid changing shared preference, authentication, or database boundaries.
 

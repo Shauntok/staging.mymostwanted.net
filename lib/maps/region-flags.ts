@@ -1,0 +1,18 @@
+export const regionFlagAssets:Record<string,string>={
+  Johor:"jhr",
+  Kedah:"kdh",
+  Kelantan:"ktn",
+  Melaka:"mlk",
+  "Negeri Sembilan":"nsn",
+  Pahang:"phg",
+  Penang:"png",
+  Perak:"prk",
+  Perlis:"pls",
+  Sabah:"sbh",
+  Sarawak:"swk",
+  Selangor:"sgr",
+  Terengganu:"trg",
+  "W.P. Kuala Lumpur":"kul",
+  "W.P. Labuan":"lbn",
+  Singapore:"sg",
+};

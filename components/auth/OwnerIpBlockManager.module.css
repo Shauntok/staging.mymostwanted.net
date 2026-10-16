@@ -1,0 +1,24 @@
+.panel{padding:20px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.panel h2{margin:0;color:var(--ink);font-size:18px}
+.intro{margin:8px 0 14px;color:var(--muted);font-size:12px;line-height:1.65}
+.notice,.policy,.status{margin:10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:9px;color:var(--muted);font-size:11px;line-height:1.5}
+.notice[data-configured="true"]{border-color:color-mix(in srgb,#d18c31 45%,var(--line));color:color-mix(in srgb,#d18c31 62%,var(--ink))}
+.policy[data-enabled="true"]{border-color:color-mix(in srgb,#d18c31 45%,var(--line));color:#98600e}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;padding:14px;border:1px solid var(--line);border-radius:11px;background:color-mix(in srgb,var(--surface) 92%,var(--map))}
+.form>label,.list li>label{display:grid;gap:5px;color:var(--ink);font-size:11px;font-weight:650}
+.form input,.form select,.form textarea,.list textarea{width:100%;min-width:0;min-height:38px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:12px}
+.form textarea,.list textarea{min-height:68px;resize:vertical;line-height:1.5}
+.form small{color:var(--muted);font-size:10px;font-weight:400;line-height:1.45}
+.actions{display:flex;flex-wrap:wrap;align-items:end;gap:8px}
+.status{color:var(--ink)}
+.list{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.list h3{margin:0;color:var(--ink);font-size:14px}
+.list>p{color:var(--muted);font-size:11px}
+.list ul{display:grid;gap:9px;margin:10px 0;padding:0;list-style:none}
+.list li{display:grid;gap:8px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;color:var(--ink);font-size:11px}
+.heading span,.heading time{color:var(--muted);font-size:10px}
+.list li p{margin:0;color:var(--muted);font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.list li p b{color:var(--ink)}
+.note{margin:12px 0 0;color:var(--muted);font-size:10px;line-height:1.55}
+@media(max-width:620px){.panel{padding:15px}.form{grid-template-columns:1fr}.actions{align-items:stretch;flex-direction:column}.actions button{width:100%}}

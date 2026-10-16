@@ -1,9 +1,9 @@
 # MMWR Phase 0 — Architecture, Trust Boundaries and Data Inventory
 
-**Review date:** 2026-09-28  
+**Review date:** 2026-10-05
 **Workspace:** C:\Users\PC\Desktop\mmwr  
-**Authority:** HANDOFF.md and the approved requirements in this conversation  
-**State:** Local development foundation only. No database, authentication, mail, analytics, backup, or deployment provider is configured.
+**Authority:** HANDOFF.md and the approved requirements in this conversation
+**State:** The local application and local Supabase development stack are configured and have passed the current local test suite. This is not a hosted-environment or launch readiness statement: no managed Supabase, Staging, Production, SMTP, Cloudflare R2, GA4 or search-console configuration is verified here.
 
 ## Repository and runtime snapshot
 
@@ -11,8 +11,8 @@
 - The project was bootstrapped as an independent Git repository. Current development branch is codex/mmwr-plan.
 - app/layout.tsx contains site metadata and defaults search indexing to false unless an explicit environment value allows it.
 - components/shell/PreferencesProvider.tsx owns browser language, theme, age-gate and consent preferences; it is not authentication or a server authorization boundary.
-- components/home/HomePage.tsx contains only a labelled illustrative map preview and empty section shells: Latest 6, Hot Ranked 6, Tags 12.
-- Supabase CLI 2.118.0 is pinned as a development dependency. The local config disables automatic exposure of new tables and seed data and enables native Auth MFA recovery codes. Identity, content/submission, and app-owned email verification migrations with explicit RLS/grants are authored; 105 pgTAP assertions are written across four suites but not executed because Docker is unavailable. Email/Password Auth pages, a Next.js SSR client/proxy, PKCE callback, and server-only verification email sender are authored. The Phase 2 schema is not applied/verified against PostgreSQL, no provider is linked, and `.env.example` contains placeholders only; no credentials have been added.
+- The initial Phase 0 scaffold used empty homepage section shells. The current approved homepage count is Latest 8, Hot Ranked 8, and Tags 12; see `MASTER_PLAN.md` for implementation status.
+- Supabase CLI 2.118.0 is pinned as a development dependency. The local config disables automatic exposure of new tables and seed data and enables native Auth MFA recovery codes. The current 103-file migration chain is applied to the local Supabase database; the latest local test run passes 26 pgTAP files / 637 assertions and `supabase db lint --local` reports no schema errors. Email/password flows, app-owned email verification, Turnstile Siteverify helpers, staff MFA/session controls, submissions/moderation and evidence workflows have local implementations and regression coverage, but hosted Auth, real email/CAPTCHA delivery, UI acceptance and Staging role/permission verification remain open. `.env.example` contains variable names and safe defaults, not service credentials. Local Supabase CLI-generated credentials are not checked into the repository.
 - ourlittleage is a separate source repository. This review does not change it or import its application code/data.
 
 ## Trust and data-flow boundaries
@@ -33,7 +33,7 @@ The browser age gate and Cookie Consent are presentation and preference controls
 | Actor | Intended access |
 |---|---|
 | Visitor | Approved public page data and the approved excerpt/thumbnail experience; no pending content, private evidence, account identity, internal risk flags, audit data or commercial data. |
-| Registered user | Visitor access plus full authorized reading and one Reaction per post. Submission requires verified email. Can see own submission workflow and append requested supporting information, but cannot revise submitted core facts. |
+| Registered user | Visitor access plus full authorized reading and one Reaction per post. Submissions are currently closed; future submission access will require verified email. Once the workflow is enabled, users can see their own submissions and append requested supporting information, but cannot revise submitted core facts. |
 | Suspended user | Can log in and read, but cannot submit or React while restrictions apply. |
 | Admin | Moderate ordinary submissions, edit presentation and neutral wording without changing core facts/evidence meaning, view internal evidence with audit, process routine abuse actions and operational analytics. Cannot approve required high-risk cases, permanently delete public content, permanently ban/IP-block, change evidence visibility, or view customer quotes/budgets/revenue. |
 | Owner | Admin capabilities plus high-risk approval, internal/public evidence visibility decisions, Emergency Hide and final deletion decisions, permanent bans/IP blocks, commercial data, security configuration, and Admin layout reset. |
@@ -61,11 +61,12 @@ The same names may be used in isolated Development, Staging and Production envir
 |---|---|---|
 | Site and indexing | NEXT_PUBLIC_SITE_URL, ALLOW_SEARCH_INDEXING | Local site metadata; indexing remains disabled by default and should only be enabled after Production review. |
 | Supabase | NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY | Server-side SSR client, session refresh Proxy, Auth actions and local migrations are authored. Supabase URL/key are placeholders only. The secret key is not used by the Auth pages and remains server-only if later needed. |
-| Turnstile | TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY | Reserved; bot protection not integrated. Secret remains server-only. |
-| SMTP | SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM | Server-only app verification email sender is authored; no mail provider configured and no SMTP credentials present. Password reset email remains delivered by Supabase Auth through its SMTP configuration. |
-| R2 backups | R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET | Reserved; backup pipeline not implemented. Credentials remain server-only. |
+| Turnstile | TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY | Local Siteverify integration covers authentication and feedback/report flows; final submission remains closed. No provider keys or hosted hostname/action verification are configured. Secret remains server-only. |
+| SMTP | SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, SMTP_FROM | Server-only app verification sender and error-minimized critical-security mail pipeline are implemented locally. No mail provider is configured and no email has been sent in this review. Password-reset mail remains Supabase Auth SMTP-managed. |
+| R2 backups | R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, MMWR_BACKUP_ENABLED, MMWR_BACKUP_ENCRYPTION_KEY | Local encrypted backup/export, R2 adapter, one-shot orchestration, manifest and Storage-only isolated restore components exist. No R2 credentials or schedule are configured; no combined DB+Storage recovery has passed, and backup gates remain OFF. |
+| Analytics | FIRST_PARTY_ANALYTICS_ENABLED, NEXT_PUBLIC_FIRST_PARTY_ANALYTICS_ENABLED, NEXT_PUBLIC_GA4_ENABLED, NEXT_PUBLIC_GA_MEASUREMENT_ID | Consent-gated route-level Page View code is implemented locally and remains disabled by default. GA4 has not been configured; Valid Read/Hot and other non-approved event categories remain off. |
 
-Current Dev, Staging and Production values are unconfigured. GA4/Search Console settings have not been added to the template because the tracking and provider workflows have not been implemented or selected.
+Local Development uses the local Supabase stack. `.env.example` contains placeholders only. No managed Dev project, Staging, Production, Vercel deployment, SMTP, R2, GA4, Search Console or Bing Webmaster account is configured or verified. Do not infer hosted readiness from local migrations, tests or implementation.
 
 ## Decisions still open
 

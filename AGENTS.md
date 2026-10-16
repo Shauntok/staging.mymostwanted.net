@@ -14,7 +14,7 @@ Before changing application code, read `HANDOFF.md`, `MASTER_PLAN.md`, and `USER
 
 - This is a separate product from Our Little Age. Reuse only reviewed ideas or isolated patterns; never copy its environment files, production data, credentials, or unrelated code.
 - Keep the brand `MMWR / Malaysia Most Wanted Ranking`; UI supports Simplified Chinese, English and Bahasa Melayu.
-- Homepage order/counts: interactive Malaysia map, 6 Latest, 6 Hot Ranked, 12 Smart Mix Tags. Advertising is OFF by default.
+- Homepage order/counts: interactive Malaysia map, 8 Latest, 8 Hot Ranked, 12 Smart Mix Tags. Advertising is OFF by default.
 - Keep the 18+ gate, consent, RLS, server authorization, Owner/Admin TOTP 2FA, internal evidence isolation, audit logs and backup verification as launch requirements.
 - Do not present fabricated posts, people, statistics or geographic boundaries as real data.
 - Mark optional features OFF unless HANDOFF explicitly says otherwise. Do not configure or deploy Production without guiding the user step by step.

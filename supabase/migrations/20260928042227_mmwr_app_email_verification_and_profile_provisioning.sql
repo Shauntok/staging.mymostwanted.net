@@ -213,16 +213,11 @@ end;
 $function$;
 
 revoke all on function private.verify_submission_email(bytea) from public, anon, authenticated, service_role;
-grant execute on function private.verify_submission_email(bytea) to anon, authenticated;
--- The anonymous role needs private-schema name resolution for the invoker RPC.
--- The schema stays out of PostgREST's exposed schemas and has no table grants;
--- only the narrow one-time verification helper is executable by anon.
-grant usage on schema private to anon;
 
 create function public.verify_submission_email(p_token_hash bytea)
 returns boolean
 language sql
-security invoker
+security definer
 set search_path = ''
 as $function$
   select private.verify_submission_email(p_token_hash);

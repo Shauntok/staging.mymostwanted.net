@@ -17,7 +17,7 @@ alter table private.security_events
 create function private.has_staff_identity()
 returns boolean
 language sql
-stable
+volatile
 security definer
 set search_path = ''
 as $function$
@@ -34,7 +34,7 @@ grant execute on function private.has_staff_identity() to authenticated;
 create function public.has_staff_identity()
 returns boolean
 language sql
-stable
+volatile
 security invoker
 set search_path = ''
 as $function$

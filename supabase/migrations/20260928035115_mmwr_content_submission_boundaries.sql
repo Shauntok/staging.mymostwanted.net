@@ -589,7 +589,7 @@ returns table (
   internal_reviewer_notes text
 )
 language sql
-stable
+volatile
 security definer
 set search_path = ''
 as $function$
@@ -618,7 +618,7 @@ returns table (
   internal_reviewer_notes text
 )
 language sql
-stable
+volatile
 security invoker
 set search_path = ''
 as $function$
@@ -717,7 +717,7 @@ grant execute on function public.record_submission_review(uuid, text, text, text
 create function private.read_post_full_body(p_post_id uuid)
 returns text
 language sql
-stable
+volatile
 security definer
 set search_path = ''
 as $function$
@@ -741,7 +741,7 @@ grant execute on function private.read_post_full_body(uuid) to authenticated;
 create function public.read_post_full_body(p_post_id uuid)
 returns text
 language sql
-stable
+volatile
 security invoker
 set search_path = ''
 as $function$

@@ -1,0 +1,78 @@
+name: Local CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: local-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.1
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          package-manager-cache: false
+
+      - name: Scan Git history and working tree for secrets
+        run: node scripts/security/scan-secrets.mjs
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Start isolated local Supabase stack
+        run: npx supabase start --exclude studio,imgproxy,logflare,vector,postgres-meta > /dev/null 2>&1
+
+      - name: Run local suites, pgTAP, and database lint
+        run: npm run test:local
+
+      - name: Start pinned ClamAV test daemon
+        run: docker run --detach --rm --name mmwr-ci-clamd --publish 127.0.0.1:3310:3310 clamav/clamav@sha256:57deb108fc4c72778aa83eafbca7bb7153e28c3f57c005afd38d31f16da86f23
+
+      - name: Wait for ClamAV readiness
+        timeout-minutes: 12
+        run: node scanner/wait-for-clamd.mjs
+        env:
+          MMWR_TEST_CLAMD_PORT: "3310"
+
+      - name: Test scanner against real ClamAV
+        run: npm run test:scanner
+        env:
+          MMWR_TEST_REAL_CLAMD: "true"
+          MMWR_TEST_CLAMD_PORT: "3310"
+
+      - name: Stop ClamAV test daemon
+        if: always()
+        run: docker stop --time 60 mmwr-ci-clamd >/dev/null 2>&1 || true
+
+      - name: Build production bundle
+        run: npm run build
+        env:
+          MMWR_VALIDATION_DIST_DIR: .next-validation-ci
+
+      - name: Verify local production security and noindex responses
+        run: npm run security:smoke
