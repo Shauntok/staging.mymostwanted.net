@@ -1,10 +1,12 @@
 import type {Metadata} from "next";
+import {headers} from "next/headers";
 import {ReportCenter} from "@/components/reports/ReportCenter";
 import {createSupabaseServerClient} from "@/lib/supabase/server";
 
 export const metadata:Metadata={title:"Feedback & reports — MMWR",robots:{index:false,follow:false}};
 
 export default async function ReportPage(){
+  const turnstileNonce=(await headers()).get("x-nonce");
   let signedIn=false;let active=false;
   try{
     const supabase=await createSupabaseServerClient();
@@ -15,5 +17,5 @@ export default async function ReportPage(){
       active=!error&&profile?.account_state==="active";
     }
   }catch{}
-  return <ReportCenter signedIn={signedIn} active={active} turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim()||null}/>;
+  return <ReportCenter signedIn={signedIn} active={active} turnstileNonce={turnstileNonce} turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim()||null}/>;
 }

@@ -1,4 +1,5 @@
 import type {Metadata} from "next";
+import {headers} from "next/headers";
 import type {ReactNode} from "react";
 import {AuthForms} from "@/components/auth/AuthForms";
 import {StaffDashboard} from "@/components/auth/StaffDashboard";
@@ -183,8 +184,9 @@ async function getAdminPageState(): Promise<AdminPageState> {
 }
 
 export default async function AdminPage() {
+  const turnstileNonce=(await headers()).get("x-nonce");
   const state = await getAdminPageState();
-  if (state.kind === "signin") return <div className="auth-page"><AuthForms mode="signin" redirectTo="/admin" turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || null}/></div>;
+  if (state.kind === "signin") return <div className="auth-page"><AuthForms mode="signin" redirectTo="/admin" turnstileNonce={turnstileNonce} turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || null}/></div>;
   if (state.kind === "denied") return <StaffAreaStatus denied/>;
   if (state.kind === "mfa") return <div className="auth-page"><StaffMfaGate/></div>;
   if (state.kind === "unavailable") return <StaffAreaStatus/>;

@@ -4,6 +4,16 @@
 
 ## 1. 项目目标
 
+### 当前本地与托管状态（2026-10-16）
+
+当前代码分支 `codex/mmwr-plan`，基线 HEAD `10fcb1750d16b402a487c96d586d617946631066`；最新线上预览仍来自 GitHub `staging` 分支这一旧提交。发现 Turnstile Script 未获 CSP nonce 后，已在本地将每次请求 nonce 显式传入验证码脚本及其使用页面，尚未部署到 Staging。修复后的 `npm test`、`npm run lint`、`npx tsc --noEmit`、`npm run security:smoke`、`npm run build` 与 `git diff --check` 均通过。Security smoke 覆盖简中/英语/马来语 45 个代表页面、安全响应头、默认 noindex、语言标记及 robots/sitemap 关闭态；完整 Node 测试按默认设置跳过 2 个真实 ClamAV 用例和 3 个本地 Supabase 恢复 opt-in 用例。本轮没有运行 `test:db` 或 Supabase DB lint。
+
+Vercel 项目 `staging-mymostwanted-net` 的最新 Preview 部署 `dpl_31sRhWfBGVqRJE7Tgwsc3XkyrKfd` 为 READY、`target=null`，提交为上述 SHA；项目启用了 SSO 访问保护。Staging Supabase 项目 ref 为 `jjgwiipawyoizwalanha`，本地与远端迁移账本此前核对均为 106 个迁移；Resend 的 Staging 发信域已验证。浏览器只读检查确认地区页可加载；账号页登录按钮此前禁用，Turnstile 未通过端到端验收。2026-10-16 只读核对确认 Cloudflare widget 已允许实际 Vercel Preview hostname `staging-mymostwanted-net-git-staging-shauntoks-projects.vercel.app` 和 `staging.mymostwanted.net`，Vercel Preview 的公开 Site Key 与 widget 一致。浏览器进一步确认 Turnstile API 未挂到 `window`，其 Next Script 标签缺少请求 CSP nonce；当前 CSP 使用 `strict-dynamic`。已在本地将每次请求的 nonce 显式传给 Turnstile Script，待 Staging Preview 重新部署验证。Cloudflare 控制台显示尚未调用 Siteverify；此前没有提交验证码表单，此提示不能单独说明故障原因。白名单无需改动。还未完成 Supabase Auth Site URL/精确 callback/Auth SMTP、合成账号与权限边界验收、Owner/Admin TOTP、全流程邮件验证及完整浏览器验收。没有发送测试邮件或创建测试账号。
+
+Production 尚未就绪：Vercel Production 环境目前指向 Staging Supabase URL，Production `NEXT_PUBLIC_SITE_URL` 仍是 Staging 域名；未建立独立 Production Supabase/Storage/Secrets，未配置 Production 域名/DNS，也未进行 Production 部署。Supabase Free plan 项目创建因账号已达两个活动项目上限被拒；现有 `ourlittleage` 与 `mmwr-staging` 均未暂停。将 `Shauntok's Org` 升级到 Pro 或另建付费组织均会产生费用，已在 MASTER_PLAN 记录官方计费估算；需 Owner 选组织并确认费用后才能创建 Production。Phase 7 独立 R2 加密备份、完整非空 DB+Storage 隔离恢复、恢复元数据与权限验收、RPO/RTO 及密钥保管规则均未通过；法务审阅、公开索引 SEO、GSC/Bing 所有权与上线后的运维演练也未完成。所有高风险运行开关仍 OFF。正式环境和 DNS 切流须在这些门槛通过后逐步由用户确认。
+
+更早的本地架构与 Phase 3 细节仍保留在下方历史记录中；不得把历史的“未连接托管服务”描述当作当前状态。详情见 [`PHASE3_EXIT_AUDIT.md`](docs/operations/PHASE3_EXIT_AUDIT.md) 与 [`PHASE7_STAGING_ACCEPTANCE.md`](docs/operations/PHASE7_STAGING_ACCEPTANCE.md)。
+
 建设 **MMWR / Malaysia Most Wanted Ranking**（中文展示名：**马来西亚人渣排行榜**）的三语社区网站。用户可阅读经过人工审核公开的投稿；投稿入口当前保持关闭，未来开放后须先验证邮箱；Owner/Admin 在独立后台审核、管理内容与风险。项目涉及真实人物与企业的负面投稿，准确性、隐私、证据隔离、申诉/更正/撤下与审计能力必须先于增长功能。
 
 默认技术方向：**Next.js + Supabase + Vercel**。V1 投稿附件放 Supabase Storage；Cloudflare R2 用于独立异地备份，不作为 V1 前台附件主存储。没有目标仓库时，先做现状盘点和技术决策记录，再提出待用户选择事项；不要虚构当前代码状态。
@@ -18,7 +28,7 @@
 6. 不自动发布/切换 Production、不伪造注册账户或 DNS 等外部验证。Codex 完成实现、文档和本地门槛后，停下来说明可检查结果与下一步配置。
 7. “小时代”仅选择性迁移。先做功能/安全/依赖/数据模型评估，记录可复用、不适用、重写、待确认；不得整包复制，不得因此削弱本文件规则。
 
-### 当前本地验证快照（2026-10-05）
+### 历史本地验证快照（2026-10-05）
 
 当前工作树最新全量 `npm run test:local` 通过：所有 Node 测试组通过，真实 ClamAV 两项按默认设置跳过；默认关闭的本地 thumbnail / Storage 冒烟也按 opt-in 规则跳过；pgTAP **26 个文件 / 644 项断言通过**，DB lint 无 schema errors。TypeScript、ESLint、`git diff --check` 和隔离生产构建均通过；104 个磁盘迁移与本地 migration ledger 对齐至 `20261005160001`；八个 `private.runtime_flags` 均为 false。夹具在事务中回滚；未连接托管 Supabase、SMTP、Vercel Staging 或 Production，也未发送邮件或运行备份 Worker。近期还修正了 `/robots.txt` 指向失效 sitemap 的问题，并将公开 sitemap 改为按请求生成的索引与分片；生产预览仅验证索引门关闭时的 fail-closed 状态，开启门的公开投影仍待 Staging 验收。社交链接校验拒绝 URL credentials、百分号编码 authority 与格式错误的 DNS 标签。修复了 `/account` 与 `/account/verify` 两个邮件重发入口漏传 Turnstile Site Key 的问题，新增 3 项属性回归测试覆盖页面属性和站点密钥规范化，另有 16 项 Server Action 流程测试覆盖 CAPTCHA、当前会话身份、active/verified 状态、限额与错误最小化；隔离生产构建中未配置 Site Key 的 `/zh-cn/account/verify` 返回 200，显示关闭提示并禁用重发按钮。页面交互、无障碍与 Phase 3 UI 仍待用户验收。详情见 [`PHASE3_EXIT_AUDIT.md`](docs/operations/PHASE3_EXIT_AUDIT.md)。
 

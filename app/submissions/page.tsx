@@ -1,4 +1,5 @@
 import type {Metadata} from "next";
+import {headers} from "next/headers";
 import {AuthForms} from "@/components/auth/AuthForms";
 import {SubmissionStatusList, type SubmissionStatusRow} from "@/components/submissions/SubmissionStatusList";
 import {createSupabaseServerClient} from "@/lib/supabase/server";
@@ -25,8 +26,9 @@ async function getSubmissionPageState() {
 }
 
 export default async function SubmissionsPage() {
+  const turnstileNonce=(await headers()).get("x-nonce");
   const state = await getSubmissionPageState();
-  if (state.kind === "signin") return <div className="auth-page"><AuthForms mode="signin" redirectTo="/submissions" turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || null}/></div>;
+  if (state.kind === "signin") return <div className="auth-page"><AuthForms mode="signin" redirectTo="/submissions" turnstileNonce={turnstileNonce} turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || null}/></div>;
   if (state.kind === "unavailable") return <div className="auth-page"><SubmissionStatusList rows={[]} unavailable/></div>;
   return <SubmissionStatusList rows={state.rows}/>;
 }

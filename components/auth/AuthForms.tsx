@@ -38,7 +38,7 @@ const text = {
   }
 } as const;
 
-export function AuthForms({mode, signedIn = false, passwordUpdated = false, staffSessionExpired = false, verified = false, redirectTo = "/", turnstileSiteKey = null}: {mode: AuthMode; signedIn?: boolean; passwordUpdated?: boolean; staffSessionExpired?: boolean; verified?: boolean; redirectTo?: string; turnstileSiteKey?: string | null}) {
+export function AuthForms({mode, signedIn = false, passwordUpdated = false, staffSessionExpired = false, verified = false, redirectTo = "/", turnstileSiteKey = null, turnstileNonce = null}: {mode: AuthMode; signedIn?: boolean; passwordUpdated?: boolean; staffSessionExpired?: boolean; verified?: boolean; redirectTo?: string; turnstileSiteKey?: string | null; turnstileNonce?: string | null}) {
   const {locale} = usePreferences();
   const words = text[locale];
   const [signInState, signInForm, signingIn] = useActionState(signInAction, initial);
@@ -62,7 +62,7 @@ export function AuthForms({mode, signedIn = false, passwordUpdated = false, staf
   const captchaAction = mode === "resend" || mode === "verify" ? "mmwr_email_verification_resend" : mode === "signup" ? "mmwr_signup" : mode === "forgot" ? "mmwr_password_reset" : "mmwr_login";
   const captchaControl = <div className="auth-captcha">
     <p className="auth-intro">{words.securityCheck}</p>
-    {turnstileSiteKey ? <TurnstileWidget key={captchaAction} siteKey={turnstileSiteKey} action={captchaAction} resetKey={captchaReset} onToken={value => {setCaptchaToken(value); if (value) setCaptchaFailed(false);}} onError={() => setCaptchaFailed(true)}/> : <p className="auth-message" role="status">{words.captchaUnavailable}</p>}
+    {turnstileSiteKey ? <TurnstileWidget key={captchaAction} siteKey={turnstileSiteKey} action={captchaAction} resetKey={captchaReset} nonce={turnstileNonce} onToken={value => {setCaptchaToken(value); if (value) setCaptchaFailed(false);}} onError={() => setCaptchaFailed(true)}/> : <p className="auth-message" role="status">{words.captchaUnavailable}</p>}
     {captchaFailed && <p className="auth-message" role="alert">{words.captchaUnavailable}</p>}
     <input type="hidden" name="turnstileToken" value={captchaToken}/>
   </div>;

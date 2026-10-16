@@ -1,6 +1,6 @@
 # Vercel Preview / Staging 准备清单
 
-此清单用于首次受保护的线上 Preview/Staging 准备。正式域名注册不是启动首轮 Staging 的前置条件：如 Vercel 提供的稳定 HTTPS 主机名满足配置需要，可先用它验证；自有域名只需在准备使用自定义 Staging 主机或正式上线前注册。当前仅为本地准备文档；没有连接 GitHub/Vercel/Supabase、配置 Secret、部署或应用迁移。Vercel Preview 需连接独立的 Supabase Staging 和合成资料，不得连接 Production。
+此清单现用于维护已创建的 Staging Preview 并关闭验收缺口。正式域名注册不是启动首轮 Staging 的前置条件：当前先使用稳定的 Vercel HTTPS 主机；正式域名与 Production DNS 仍须等 Staging、恢复、安全和回滚门槛通过后再逐步配置。当前 Vercel Preview 已连接独立 Supabase Staging，并使用 Staging Resend 配置；不得连接 Production 数据库或复制真实资料。
 
 ## 开始前
 
@@ -57,4 +57,6 @@
 
 ## 当前状态
 
-GitHub/Vercel/Supabase Staging 均未连接，本清单未执行。正式域名可在 Staging 阶段之后购买；目前没有任何 DNS 更改。线上服务仍须逐项由用户在相应平台完成配置并反馈结果。
+GitHub 仓库 `Shauntok/staging.mymostwanted.net` 已连接 Vercel 项目 `staging-mymostwanted-net`。2026-10-16 最新 Preview 部署 `dpl_31sRhWfBGVqRJE7Tgwsc3XkyrKfd` 为 READY，源自 `staging` 分支提交 `10fcb1750d16b402a487c96d586d617946631066`；项目已启用 SSO 保护，公开索引门关闭。Supabase Staging ref 为 `jjgwiipawyoizwalanha`，已部署迁移此前核对为 106/106；Resend `staging.mymostwanted.net` 域名已验证，Vercel Preview 环境配置了 Staging SMTP 与 Turnstile 密钥（仅记录已配置，不记录值）。
+
+仍待完成：Supabase Auth Site URL 与 `/auth/callback` allowlist/Auth SMTP；配置合成普通用户、未验证用户、Admin 与 Owner 并完成注册/登录/重置、TOTP、权限隔离和邮件流程验收；手动浏览器与无障碍验收；Staging 备份和完整隔离恢复演练。2026-10-16 只读检查中，`/zh-cn/account` 登录按钮禁用，浏览器发现 `window.turnstile` 未定义，且 Turnstile `api.js` 标签缺少请求 CSP nonce；应用 CSP 包含 `strict-dynamic`。Cloudflare widget 已允许实际 Vercel Preview hostname 和 `staging.mymostwanted.net`，Vercel Preview Site Key 与 widget 一致。已在本地将代理生成的 nonce 显式传入 Turnstile Script，待 Preview 重新部署后验证 API 初始化、token 回调与服务器 Siteverify。Cloudflare 控制台提示尚未调用 Siteverify，但没有表单提交，所以该提示不能单独判定故障原因。无需修改白名单，不要关闭挑战或绕过 Siteverify。当前没有 Production Supabase/Storage/独立密钥，也没有 Production 部署、正式域名绑定或根域名 DNS 切换。现有 Vercel Production `NEXT_PUBLIC_SUPABASE_URL` 指向 Staging，部署前必须替换为独立 Production 配置。无 DNS 更改、无邮件发送、无真实账号创建；不应将当前 Preview READY 视为上线许可。

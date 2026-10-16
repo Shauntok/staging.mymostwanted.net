@@ -8,6 +8,16 @@
 
 **配套规格：** HANDOFF.md。**用户操作手册：** USER_MANUAL.md。
 
+### 当前发布状态（2026-10-16）
+
+Vercel Staging Preview READY（部署 `dpl_31sRhWfBGVqRJE7Tgwsc3XkyrKfd`，`target=null`），来自 `staging` 分支旧提交 `10fcb1750d16b402a487c96d586d617946631066`；项目启用 SSO。Staging Supabase ref `jjgwiipawyoizwalanha` 的 106 个迁移此前与远端 ledger 核对一致，Resend Staging 域名已验证。发现 Turnstile API 未初始化后，已在本地修改为将请求 CSP nonce 传给 Next Script；本地完整 `npm test`、ESLint、TypeScript、`security:smoke` 与 production build 均通过，尚待更新 Staging Preview 并验证挑战。真实 ClamAV 与本地 Supabase 恢复测试按默认规则跳过，且本轮未跑 DB lint/pgTAP、真实登录流程或发信。
+
+**Production 阻塞状态：** 当前 Vercel Production Supabase URL 与 `NEXT_PUBLIC_SITE_URL` 仍指向 Staging；没有独立 Production Supabase/Storage/Secrets、正式域名绑定或 Production 部署。Auth Site URL/callback/Auth SMTP、合成账号/权限/TOTP验收、Phase 7 R2 备份及完整隔离恢复、RPO/RTO/密钥保管、法务、公开索引 SEO、GSC/Bing 与回滚演练均未完成。所有高风险开关保持 OFF。本轮未创建付费资源、未发送邮件、未建真实账号、未改 DNS。上线清单状态以本节和 HANDOFF 的 2026-10-16 快照为准；下面的旧日期条目保留为历史证据，不代表现况。
+
+Staging 浏览器验收补充：地区页正常加载；账号页曾显示安全验证进行中且登录按钮禁用，Turnstile 尚未在线通过。当前 Preview origin 是 `staging-mymostwanted-net-git-staging-shauntoks-projects.vercel.app`。2026-10-16 只读核对 Cloudflare widget 后确认，允许主机已同时包含该 Preview hostname 与 `staging.mymostwanted.net`；Vercel Preview 的公开 Site Key 与该 widget 一致，因此主机名和 Site Key 不匹配不构成原因。浏览器进一步确认 `window.turnstile` 未定义，Turnstile `api.js` 标签缺少当前请求的 CSP nonce；应用 CSP 使用 `strict-dynamic`。已在本地修复，将代理生成的 nonce 显式传给所有 Turnstile 脚本；仍须在 Staging 重新部署后确认 API 初始化、验证码回调与 Siteverify。Cloudflare 控制台显示尚未调用 Siteverify；之前没有提交验证码表单，因此该提示不能单独证明故障原因。不要关闭挑战或绕过 server-side Siteverify。
+
+Supabase Production 项目创建尝试被 Free plan 的两项目上限拒绝，未创建新项目，也未变更任何现有项目。官方计费说明表示此上限按用户汇总其担任 Owner/Admin 的 Free 组织，暂停项目不计入；当前 `ourlittleage` 与 `mmwr-staging` 均为活动项目。创建前工具报价为 $0，但受项目上限阻挡。可选后续是：将 `Shauntok's Org` 升级到 Pro 并承担该组织所有项目的订阅/计算费用，或另建独立付费组织仅承载 Production。按官方 Pro $25/月、Micro 计算 $10/月与 $10/月计算额度估算，独立组织单个 Micro 项目约 $25/月；若同一组织继续承载三个 Micro 计算项目，约 $45/月。此为估算，不含超额用量/税，现有项目实际计算规格待账单页核对。见 [Supabase 计费说明](https://supabase.com/docs/guides/platform/billing-on-supabase) 与 [计算费用](https://supabase.com/docs/guides/platform/manage-your-usage/compute)。等待 Owner 选择付费组织及确认月度费用后再建 Production。
+
 ## 全局约束
 
 - MMWR 正式英文品牌名固定；三语仅翻译 UI。Light/Dark 同一设计系统；视觉配色遵循用户确认的参考图（浅冰蓝/白/青蓝/海军蓝），Dark 使用同一品牌色的深海军蓝与亮青适配方案。

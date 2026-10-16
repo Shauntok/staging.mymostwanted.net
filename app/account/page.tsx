@@ -1,4 +1,5 @@
 import type {Metadata} from "next";
+import {headers} from "next/headers";
 import {AuthForms} from "@/components/auth/AuthForms";
 import {ProfileSetupForm} from "@/components/auth/ProfileSetupForm";
 import {StaffEntryLink} from "@/components/auth/StaffEntryLink";
@@ -27,6 +28,7 @@ async function getAccountState() {
 }
 
 export default async function AccountPage({searchParams}: {searchParams: Promise<{password?: string;deletion?: string;staffSession?: string;next?:string|string[]}>}) {
+  const turnstileNonce=(await headers()).get("x-nonce");
   const params = await searchParams;
   const next = typeof params.next === "string" ? safeAccountReturnTo(params.next) : "/";
   const profileReturn = typeof params.next === "string" ? next : "/account";
@@ -42,8 +44,8 @@ export default async function AccountPage({searchParams}: {searchParams: Promise
     redirectTo:next,
     turnstileSiteKey:process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
   });
-  if (state?.kind === "profile") return <div className="auth-page"><div><AuthForms {...authFormProps}/>{state.isStaff && <StaffEntryLink/>}{state.active&&<AccountDeletionControl state="active" enabled={process.env.ACCOUNT_DELETION_ENABLED === "true"} cancelled={params.deletion === "cancelled"}/>}</div></div>;
-  if (state?.kind === "banned") return <div className="auth-page"><AuthForms {...authFormProps}/></div>;
+  if (state?.kind === "profile") return <div className="auth-page"><div><AuthForms {...authFormProps} turnstileNonce={turnstileNonce}/>{state.isStaff && <StaffEntryLink/>}{state.active&&<AccountDeletionControl state="active" enabled={process.env.ACCOUNT_DELETION_ENABLED === "true"} cancelled={params.deletion === "cancelled"}/>}</div></div>;
+  if (state?.kind === "banned") return <div className="auth-page"><AuthForms {...authFormProps} turnstileNonce={turnstileNonce}/></div>;
   // Missing provider configuration keeps the public recovery/sign-in surface available.
-  return <div className="auth-page"><AuthForms {...authFormProps}/></div>;
+  return <div className="auth-page"><AuthForms {...authFormProps} turnstileNonce={turnstileNonce}/></div>;
 }

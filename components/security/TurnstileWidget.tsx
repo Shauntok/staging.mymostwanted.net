@@ -15,7 +15,7 @@ type WidgetOptions={
 type TurnstileApi={render:(container:HTMLElement,options:WidgetOptions)=>string;reset:(id:string)=>void;remove:(id:string)=>void};
 declare global {interface Window {turnstile?:TurnstileApi}}
 
-export function TurnstileWidget({siteKey,action,resetKey,onToken,onError}:{siteKey:string;action:string;resetKey:number;onToken:(token:string)=>void;onError:()=>void}){
+export function TurnstileWidget({siteKey,action,resetKey,nonce,onToken,onError}:{siteKey:string;action:string;resetKey:number;nonce:string|null;onToken:(token:string)=>void;onError:()=>void}){
   const container=useRef<HTMLDivElement>(null);const widgetId=useRef<string|null>(null);const lastReset=useRef(resetKey);
   const onTokenRef=useRef(onToken);const onErrorRef=useRef(onError);
   useEffect(()=>{onTokenRef.current=onToken;onErrorRef.current=onError;},[onToken,onError]);
@@ -45,6 +45,6 @@ export function TurnstileWidget({siteKey,action,resetKey,onToken,onError}:{siteK
 
   return <>
     <div ref={container} aria-live="polite"/>
-    <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" onReady={renderWidget} onError={()=>onErrorRef.current()}/>
+    <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" nonce={nonce??undefined} onReady={renderWidget} onError={()=>onErrorRef.current()}/>
   </>;
 }
